@@ -107,7 +107,7 @@ namespace Client_4._1
                 {
                     byte[] buffer = new byte[1024];
                     int receivedBytes = _clientSocket.Receive(buffer);
-                    string message = Encoding.ASCII.GetString(buffer, 0, receivedBytes).Replace("<EOF>", "");
+                    string message = Encoding.UTF8.GetString(buffer, 0, receivedBytes).Replace("<EOF>", "");
 
                     Invoke(new Action(() =>
                     {
@@ -134,7 +134,7 @@ namespace Client_4._1
             }
 
             string message = $"{toUser}:{messageContent}<EOF>";
-            byte[] messageBytes = Encoding.ASCII.GetBytes(message);
+            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
             _clientSocket.Send(messageBytes);
 
             txtMessage.Clear();
