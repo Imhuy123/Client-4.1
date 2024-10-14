@@ -17,9 +17,8 @@ namespace Client_4._1
             _clientSocket = clientSocket;
             _currentUser = currentUser;
             _chatWithUser = chatWithUser;
-            this.Text = $"Chat with {_chatWithUser}";
 
-            // Gán sự kiện KeyDown cho txtMessage để gửi tin bằng phím Enter
+            this.Text = $"Chat with {_chatWithUser}";
             txtMessage.KeyDown += TxtMessage_KeyDown;
         }
 
@@ -54,20 +53,19 @@ namespace Client_4._1
             {
                 _clientSocket.Send(messageBytes);
                 txtMessage.Clear();
+                ReceiveMessage($"Me: {messageContent}");
             }
             catch (SocketException ex)
             {
                 MessageBox.Show($"Failed to send message: {ex.Message}");
             }
-
-            rtbChatHistory.AppendText($"Me: {messageContent}{Environment.NewLine}");
         }
 
         public void ReceiveMessage(string message)
         {
             Invoke(new Action(() =>
             {
-                rtbChatHistory.AppendText($"{_chatWithUser}: {message}{Environment.NewLine}");
+                rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
             }));
         }
     }

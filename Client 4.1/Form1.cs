@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,11 +14,12 @@ namespace Client_4._1
         private string _userName;
         private bool _isConnected = false;
 
+        // Lưu trữ tất cả các cửa sổ ChatForm đã mở
+        private Dictionary<string, ChatForm> _openChats = new Dictionary<string, ChatForm>();
+
         public Form1()
         {
             InitializeComponent();
-
-            // Thiết lập DNS và Port mặc định
             txtServerDNS.Text = "huynas123.synology.me";
             txtPort.Text = "8081";
         }
@@ -29,16 +31,6 @@ namespace Client_4._1
             int port = int.Parse(txtPort.Text.Trim());
 
             ConnectToServer(serverAddress, port);
-            if (_isConnected)
-            {
-                // Chạy luồng lấy danh sách người dùng
-                Thread userListThread = new Thread(GetUserList);
-                userListThread.Start();
-
-                // Chạy luồng nhận tin nhắn
-                Thread receiveThread = new Thread(ReceiveMessages);
-                receiveThread.Start();
-            }
         }
 
         private void ConnectToServer(string serverAddress, int port)
@@ -56,56 +48,22 @@ namespace Client_4._1
                 _clientSocket.Send(userNameBytes);
 
                 _isConnected = true;
-                UpdateStatus("Connected to the server!");
+                AppendStatusMessage("Connected to the server!");
+
+                new Thread(ReceiveMessages).Start();
+                RequestUserList();
             }
             catch (Exception ex)
             {
-                UpdateStatus($"Connection error: {ex.Message}");
+                AppendStatusMessage($"Connection error: {ex.Message}");
             }
-        }
-
-        private void GetUserList()
-        {
-            while (_isConnected)
-            {
-                try
-                {
-                    byte[] requestBytes = Encoding.ASCII.GetBytes("RequestUserList<EOF>");
-                    _clientSocket.Send(requestBytes);
-
-                    byte[] buffer = new byte[1024];
-                    int receivedBytes = _clientSocket.Receive(buffer);
-                    string response = Encoding.UTF8.GetString(buffer, 0, receivedBytes);
-
-                    if (response.StartsWith("UserList:"))
-                    {
-                        string userList = response.Replace("UserList:", "").Replace("<EOF>", "");
-                        UpdateUserList(userList);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"Error retrieving user list: {ex.Message}");
-                }
-
-                Thread.Sleep(5000);
-            }
-        }
-
-        private void UpdateUserList(string userList)
-        {
-            Invoke(new Action(() =>
-            {
-                lstUsers.Items.Clear();
-                lstUsers.Items.AddRange(userList.Split(','));
-            }));
         }
 
         private void ReceiveMessages()
         {
-            while (_isConnected)
+            try
             {
-                try
+                while (_isConnected)
                 {
                     byte[] buffer = new byte[1024];
                     int receivedBytes = _clientSocket.Receive(buffer);
@@ -117,53 +75,78 @@ namespace Client_4._1
                     }
                     else
                     {
-                        AppendChatMessage(message);
+                        HandleIncomingMessage(message);
                     }
                 }
-                catch (Exception)
-                {
-                    UpdateStatus("Server disconnected.");
-                    _isConnected = false;
-                }
+            }
+            catch (Exception)
+            {
+                AppendStatusMessage("Server disconnected.");
+                _isConnected = false;
             }
         }
 
-        private void AppendChatMessage(string message)
+        private void HandleIncomingMessage(string message)
+        {
+            string[] splitMessage = message.Split(new[] { "->", ":" }, StringSplitOptions.None);
+            if (splitMessage.Length == 3)
+            {
+                string fromUser = splitMessage[0].Trim();
+                string toUser = splitMessage[1].Trim();
+                string content = splitMessage[2].Trim();
+
+                if (toUser == _userName)  // Tin nhắn dành cho người dùng hiện tại
+                {
+                    OpenOrSendToChat(fromUser, content);
+                }
+
+                // Thông báo trạng thái ai nhắn đến ai trên rtbMessages
+                AppendStatusMessage($"Message from {fromUser} to {toUser}");
+            }
+        }
+
+        private void OpenOrSendToChat(string fromUser, string messageContent)
+        {
+            if (!_openChats.ContainsKey(fromUser))
+            {
+                // Mở ChatForm mới nếu chưa tồn tại
+                ChatForm chatForm = new ChatForm(_clientSocket, _userName, fromUser);
+                _openChats[fromUser] = chatForm;
+                chatForm.Show();
+            }
+
+            // Gửi tin nhắn vào ChatForm tương ứng
+            _openChats[fromUser].ReceiveMessage($"{fromUser}: {messageContent}");
+        }
+
+        private void AppendStatusMessage(string status)
         {
             Invoke(new Action(() =>
             {
-                rtbMessages.AppendText(message + Environment.NewLine);
+                rtbMessages.AppendText($"[Status]: {status}{Environment.NewLine}");
             }));
         }
 
-        private void btnSend_Click(object sender, EventArgs e)
+        private void UpdateUserList(string userList)
         {
-            string toUser = lstUsers.SelectedItem?.ToString();
-            string messageContent = txtMessage.Text.Trim();
-
-            if (string.IsNullOrEmpty(toUser) || string.IsNullOrEmpty(messageContent))
+            if (InvokeRequired)
             {
-                MessageBox.Show("Please select a user and enter a message.");
+                Invoke(new Action(() => UpdateUserList(userList)));
                 return;
             }
 
-            string message = $"{_userName}->{toUser}:{messageContent}<EOF>";
-            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-            _clientSocket.Send(messageBytes);
-
-            txtMessage.Clear();
+            lstUsers.Items.Clear();
+            if (!string.IsNullOrEmpty(userList))
+            {
+                string[] users = userList.Split(',');
+                lstUsers.Items.AddRange(users);
+            }
         }
 
-        private void UpdateStatus(string status)
+        private void RequestUserList()
         {
-            if (lblStatus.InvokeRequired)
-            {
-                lblStatus.Invoke(new Action(() => lblStatus.Text = status));
-            }
-            else
-            {
-                lblStatus.Text = status;
-            }
+            byte[] requestBytes = Encoding.UTF8.GetBytes("GetUserList<EOF>");
+            _clientSocket.Send(requestBytes);
         }
 
         private void lstUsers_DoubleClick(object sender, EventArgs e)
@@ -172,8 +155,7 @@ namespace Client_4._1
 
             if (!string.IsNullOrEmpty(chatWithUser))
             {
-                ChatForm chatForm = new ChatForm(_clientSocket, _userName, chatWithUser);
-                chatForm.Show();
+                OpenOrSendToChat(chatWithUser, $"Started chat with {chatWithUser}");
             }
         }
     }
