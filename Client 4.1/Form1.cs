@@ -95,9 +95,10 @@ namespace Client_4._1
                     UpdateStatus($"Error retrieving user list: {ex.Message}");
                 }
 
-                Thread.Sleep(5000);
+                Thread.Sleep(5000); // Lặp lại yêu cầu sau mỗi 5 giây
             }
         }
+
 
         private void ReceiveMessages()
         {
@@ -162,11 +163,16 @@ namespace Client_4._1
 
         private void UpdateStatus(string status)
         {
-            Invoke(new Action(() =>
+            if (lblStatus.InvokeRequired)
+            {
+                lblStatus.Invoke(new Action(() => lblStatus.Text = status));
+            }
+            else
             {
                 lblStatus.Text = status;
-            }));
+            }
         }
+
         private void lstUsers_DoubleClick(object sender, EventArgs e)
         {
             string chatWithUser = lstUsers.SelectedItem?.ToString();
@@ -177,6 +183,7 @@ namespace Client_4._1
                 chatForm.Show();
             }
         }
+
 
 
     }

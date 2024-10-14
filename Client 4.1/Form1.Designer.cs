@@ -15,75 +15,109 @@
 
         private void InitializeComponent()
         {
-            this.txtUserName = new System.Windows.Forms.TextBox();
-            this.txtServerDNS = new System.Windows.Forms.TextBox();
-            this.txtPort = new System.Windows.Forms.TextBox();
-            this.lstUsers = new System.Windows.Forms.ListBox();
-            this.txtMessage = new System.Windows.Forms.TextBox();
-            this.btnConnect = new System.Windows.Forms.Button();
-            this.btnSend = new System.Windows.Forms.Button();
-            this.rtbMessages = new System.Windows.Forms.RichTextBox();
-            this.lblStatus = new System.Windows.Forms.Label();
-            this.SuspendLayout();
-
-            // UserName TextBox
-            this.txtUserName.Location = new System.Drawing.Point(12, 12);
-            this.txtUserName.Size = new System.Drawing.Size(150, 20);
-            this.txtUserName.PlaceholderText = "Enter your username";
-
-            // ServerDNS TextBox
-            this.txtServerDNS.Location = new System.Drawing.Point(12, 38);
-            this.txtServerDNS.Size = new System.Drawing.Size(150, 20);
-
-            // Port TextBox
-            this.txtPort.Location = new System.Drawing.Point(12, 64);
-            this.txtPort.Size = new System.Drawing.Size(150, 20);
-
-            // Connect Button
-            this.btnConnect.Location = new System.Drawing.Point(180, 12);
-            this.btnConnect.Size = new System.Drawing.Size(75, 23);
-            this.btnConnect.Text = "Connect";
-            this.btnConnect.Click += new System.EventHandler(this.btnConnect_Click);
-
-            // Users ListBox
-            this.lstUsers.Location = new System.Drawing.Point(12, 100);
-            this.lstUsers.Size = new System.Drawing.Size(150, 200);
-
-            // Message TextBox
-            this.txtMessage.Location = new System.Drawing.Point(180, 100);
-            this.txtMessage.Size = new System.Drawing.Size(150, 20);
-
-            // Send Button
-            this.btnSend.Location = new System.Drawing.Point(180, 130);
-            this.btnSend.Size = new System.Drawing.Size(75, 23);
-            this.btnSend.Text = "Send";
-         
-
-            // Messages RichTextBox
-            this.rtbMessages.Location = new System.Drawing.Point(180, 160);
-            this.rtbMessages.Size = new System.Drawing.Size(300, 140);
-
-            // Status Label
-            this.lblStatus.Location = new System.Drawing.Point(12, 320);
-            this.lblStatus.Size = new System.Drawing.Size(300, 23);
-
+            txtUserName = new TextBox();
+            txtServerDNS = new TextBox();
+            txtPort = new TextBox();
+            lstUsers = new ListBox();
+            txtMessage = new TextBox();
+            btnConnect = new Button();
+            btnSend = new Button();
+            rtbMessages = new RichTextBox();
+            lblStatus = new Label();
+            SuspendLayout();
+            // 
+            // txtUserName
+            // 
+            txtUserName.Location = new Point(12, 12);
+            txtUserName.Name = "txtUserName";
+            txtUserName.PlaceholderText = "Enter your username";
+            txtUserName.Size = new Size(150, 23);
+            txtUserName.TabIndex = 0;
+            // 
+            // txtServerDNS
+            // 
+            txtServerDNS.Location = new Point(12, 38);
+            txtServerDNS.Name = "txtServerDNS";
+            txtServerDNS.Size = new Size(150, 23);
+            txtServerDNS.TabIndex = 1;
+            // 
+            // txtPort
+            // 
+            txtPort.Location = new Point(12, 64);
+            txtPort.Name = "txtPort";
+            txtPort.Size = new Size(150, 23);
+            txtPort.TabIndex = 2;
+            // 
+            // lstUsers
+            // 
+            lstUsers.ItemHeight = 15;
+            lstUsers.Location = new Point(12, 100);
+            lstUsers.Name = "lstUsers";
+            lstUsers.Size = new Size(150, 199);
+            lstUsers.TabIndex = 3;
+            lstUsers.DoubleClick += lstUsers_DoubleClick;
+            // 
+            // txtMessage
+            // 
+            txtMessage.Location = new Point(180, 100);
+            txtMessage.Name = "txtMessage";
+            txtMessage.Size = new Size(150, 23);
+            txtMessage.TabIndex = 4;
+            // 
+            // btnConnect
+            // 
+            btnConnect.Location = new Point(180, 12);
+            btnConnect.Name = "btnConnect";
+            btnConnect.Size = new Size(75, 23);
+            btnConnect.TabIndex = 5;
+            btnConnect.Text = "Connect";
+            btnConnect.Click += btnConnect_Click;
+            // 
+            // btnSend
+            // 
+            btnSend.Location = new Point(180, 130);
+            btnSend.Name = "btnSend";
+            btnSend.Size = new Size(75, 23);
+            btnSend.TabIndex = 6;
+            btnSend.Text = "Send";
+            // 
+            // rtbMessages
+            // 
+            rtbMessages.Location = new Point(180, 160);
+            rtbMessages.Name = "rtbMessages";
+            rtbMessages.Size = new Size(300, 140);
+            rtbMessages.TabIndex = 7;
+            rtbMessages.Text = "";
+            // 
+            // lblStatus
+            // 
+            lblStatus.Location = new Point(12, 320);
+            lblStatus.Name = "lblStatus";
+            lblStatus.Size = new Size(300, 23);
+            lblStatus.TabIndex = 8;
+            // 
             // Form1
-            this.ClientSize = new System.Drawing.Size(500, 350);
-            this.Controls.Add(this.txtUserName);
-            this.Controls.Add(this.txtServerDNS);
-            this.Controls.Add(this.txtPort);
-            this.Controls.Add(this.lstUsers);
-            this.Controls.Add(this.txtMessage);
-            this.Controls.Add(this.btnConnect);
-            this.Controls.Add(this.btnSend);
-            this.Controls.Add(this.rtbMessages);
+            // 
+            ClientSize = new Size(500, 350);
+            Controls.Add(txtUserName);
+            Controls.Add(txtServerDNS);
+            Controls.Add(txtPort);
+            Controls.Add(lstUsers);
+            Controls.Add(txtMessage);
+            Controls.Add(btnConnect);
+            Controls.Add(btnSend);
+            Controls.Add(rtbMessages);
+            Controls.Add(lblStatus);
+            Name = "Form1";
+            Text = "Socket Client GUI";
+            ResumeLayout(false);
+            PerformLayout();
+            // btb label 
+            this.lblStatus = new System.Windows.Forms.Label();
+            this.lblStatus.Location = new System.Drawing.Point(12, 120);
+            this.lblStatus.Size = new System.Drawing.Size(200, 23);
+            this.lblStatus.Text = "Disconnected";
             this.Controls.Add(this.lblStatus);
-            this.Text = "Socket Client GUI";
-            this.ResumeLayout(false);
-            this.PerformLayout();
-            //chat fom 
-            this.lstUsers.DoubleClick += new System.EventHandler(this.lstUsers_DoubleClick);
-
         }
     }
 }
