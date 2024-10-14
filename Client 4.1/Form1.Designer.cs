@@ -81,6 +81,9 @@
             this.Text = "Socket Client GUI";
             this.ResumeLayout(false);
             this.PerformLayout();
+            //chat fom 
+            this.lstUsers.DoubleClick += new System.EventHandler(this.lstUsers_DoubleClick);
+
         }
     }
 }
