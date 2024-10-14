@@ -18,9 +18,26 @@ namespace Client_4._1
             _currentUser = currentUser;
             _chatWithUser = chatWithUser;
             this.Text = $"Chat with {_chatWithUser}";
+
+            // Gán sự kiện KeyDown cho txtMessage để gửi tin bằng phím Enter
+            txtMessage.KeyDown += TxtMessage_KeyDown;
+        }
+
+        private void TxtMessage_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+                SendMessage();
+            }
         }
 
         private void btnSend_Click(object sender, EventArgs e)
+        {
+            SendMessage();
+        }
+
+        private void SendMessage()
         {
             string messageContent = txtMessage.Text.Trim();
 
@@ -30,11 +47,19 @@ namespace Client_4._1
                 return;
             }
 
-            string message = $"{_chatWithUser}:{messageContent}<EOF>";
+            string message = $"{_currentUser}->{_chatWithUser}:{messageContent}<EOF>";
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-            _clientSocket.Send(messageBytes);
 
-            txtMessage.Clear();
+            try
+            {
+                _clientSocket.Send(messageBytes);
+                txtMessage.Clear();
+            }
+            catch (SocketException ex)
+            {
+                MessageBox.Show($"Failed to send message: {ex.Message}");
+            }
+
             rtbChatHistory.AppendText($"Me: {messageContent}{Environment.NewLine}");
         }
 

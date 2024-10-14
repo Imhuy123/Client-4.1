@@ -45,16 +45,13 @@ namespace Client_4._1
         {
             try
             {
-                // Lấy địa chỉ IP từ DNS hoặc tên server
                 IPHostEntry hostEntry = Dns.GetHostEntry(serverAddress);
                 IPAddress ipAddress = hostEntry.AddressList[0];
                 IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 
-                // Tạo socket và kết nối đến server
                 _clientSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 _clientSocket.Connect(remoteEP);
 
-                // Gửi tên người dùng đến server
                 byte[] userNameBytes = Encoding.UTF8.GetBytes(_userName + "<EOF>");
                 _clientSocket.Send(userNameBytes);
 
@@ -83,11 +80,7 @@ namespace Client_4._1
                     if (response.StartsWith("UserList:"))
                     {
                         string userList = response.Replace("UserList:", "").Replace("<EOF>", "");
-                        Invoke(new Action(() =>
-                        {
-                            lstUsers.Items.Clear();
-                            lstUsers.Items.AddRange(userList.Split(','));
-                        }));
+                        UpdateUserList(userList);
                     }
                 }
                 catch (Exception ex)
@@ -95,10 +88,18 @@ namespace Client_4._1
                     UpdateStatus($"Error retrieving user list: {ex.Message}");
                 }
 
-                Thread.Sleep(5000); // Lặp lại yêu cầu sau mỗi 5 giây
+                Thread.Sleep(5000);
             }
         }
 
+        private void UpdateUserList(string userList)
+        {
+            Invoke(new Action(() =>
+            {
+                lstUsers.Items.Clear();
+                lstUsers.Items.AddRange(userList.Split(','));
+            }));
+        }
 
         private void ReceiveMessages()
         {
@@ -110,28 +111,13 @@ namespace Client_4._1
                     int receivedBytes = _clientSocket.Receive(buffer);
                     string message = Encoding.UTF8.GetString(buffer, 0, receivedBytes).Replace("<EOF>", "");
 
-                    // Tách người gửi và nội dung tin nhắn
-                    string[] splitMessage = message.Split(new char[] { ':' }, 2);
-                    if (splitMessage.Length == 2)
+                    if (message.StartsWith("UserList:"))
                     {
-                        string fromUser = splitMessage[0].Trim();
-                        string messageContent = splitMessage[1].Trim();
-
-                        // Hiển thị tin nhắn trong cửa sổ chat tương ứng
-                        Invoke(new Action(() =>
-                        {
-                            foreach (Form form in Application.OpenForms)
-                            {
-                                if (form is ChatForm chatForm && chatForm.Text.Contains(fromUser))
-                                {
-                                    chatForm.ReceiveMessage(messageContent);
-                                    return;
-                                }
-                            }
-
-                            // Nếu không có cửa sổ chat, hiển thị trong lịch sử tin nhắn chung
-                            rtbMessages.AppendText($"{fromUser}: {messageContent}{Environment.NewLine}");
-                        }));
+                        UpdateUserList(message.Replace("UserList:", ""));
+                    }
+                    else
+                    {
+                        AppendChatMessage(message);
                     }
                 }
                 catch (Exception)
@@ -142,6 +128,13 @@ namespace Client_4._1
             }
         }
 
+        private void AppendChatMessage(string message)
+        {
+            Invoke(new Action(() =>
+            {
+                rtbMessages.AppendText(message + Environment.NewLine);
+            }));
+        }
 
         private void btnSend_Click(object sender, EventArgs e)
         {
@@ -154,7 +147,7 @@ namespace Client_4._1
                 return;
             }
 
-            string message = $"{toUser}:{messageContent}<EOF>";
+            string message = $"{_userName}->{toUser}:{messageContent}<EOF>";
             byte[] messageBytes = Encoding.UTF8.GetBytes(message);
             _clientSocket.Send(messageBytes);
 
@@ -183,8 +176,5 @@ namespace Client_4._1
                 chatForm.Show();
             }
         }
-
-
-
     }
 }
