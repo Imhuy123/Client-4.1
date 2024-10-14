@@ -57,7 +57,7 @@
             this.btnSend.Location = new System.Drawing.Point(180, 130);
             this.btnSend.Size = new System.Drawing.Size(75, 23);
             this.btnSend.Text = "Send";
-            this.btnSend.Click += new System.EventHandler(this.btnSend_Click);
+         
 
             // Messages RichTextBox
             this.rtbMessages.Location = new System.Drawing.Point(180, 160);
