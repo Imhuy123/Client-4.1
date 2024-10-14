@@ -14,7 +14,7 @@ namespace Client_4._1
         private string _userName;
         private bool _isConnected = false;
 
-        // Lưu trữ tất cả các cửa sổ ChatForm đã mở
+        // Lưu trữ các cửa sổ ChatForm đã mở
         private Dictionary<string, ChatForm> _openChats = new Dictionary<string, ChatForm>();
 
         public Form1()
@@ -50,7 +50,10 @@ namespace Client_4._1
                 _isConnected = true;
                 AppendStatusMessage("Connected to the server!");
 
+                // Bắt đầu nhận tin nhắn từ server
                 new Thread(ReceiveMessages).Start();
+
+                // Gửi yêu cầu danh sách người dùng
                 RequestUserList();
             }
             catch (Exception ex)
@@ -110,9 +113,12 @@ namespace Client_4._1
             if (!_openChats.ContainsKey(fromUser))
             {
                 // Mở ChatForm mới nếu chưa tồn tại
-                ChatForm chatForm = new ChatForm(_clientSocket, _userName, fromUser);
-                _openChats[fromUser] = chatForm;
-                chatForm.Show();
+                Invoke(new Action(() =>
+                {
+                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, fromUser);
+                    _openChats[fromUser] = chatForm;
+                    chatForm.Show();
+                }));
             }
 
             // Gửi tin nhắn vào ChatForm tương ứng
