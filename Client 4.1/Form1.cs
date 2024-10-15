@@ -102,9 +102,7 @@ namespace Client_4._1
                 // Kiểm tra xem tin nhắn có liên quan đến người dùng hiện tại không
                 if (toUser == _userName || fromUser == _userName)
                 {
-                    OpenOrSendToChat(fromUser, content);
-
-                    // Lưu tin nhắn vào lịch sử
+                    OpenOrSendToChat(fromUser, content); // Mở hoặc gửi tin nhắn tới cửa sổ chat
                     if (!_chatHistories.ContainsKey(fromUser))
                     {
                         _chatHistories[fromUser] = new List<string>();
@@ -113,6 +111,9 @@ namespace Client_4._1
                 }
             }
         }
+
+
+
 
         private void OpenOrSendToChat(string user, string messageContent)
         {
@@ -143,6 +144,7 @@ namespace Client_4._1
                 _openChats[user].ReceiveMessage($"{user}: {messageContent}");
             }
         }
+
 
         private void AppendStatusMessage(string status)
         {

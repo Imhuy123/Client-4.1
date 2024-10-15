@@ -87,6 +87,9 @@ namespace Client_4._1
             rtbChatHistory.ScrollToCaret();
         }
 
+
+
+
         private void ChatForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             // Cửa sổ chat được loại bỏ khỏi danh sách trong Form1 khi đóng
