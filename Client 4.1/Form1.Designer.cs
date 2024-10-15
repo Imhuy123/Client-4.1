@@ -13,6 +13,8 @@
         private System.Windows.Forms.RichTextBox rtbMessages;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblConnectionStatus;
+      
+      
 
 
         private void InitializeComponent()

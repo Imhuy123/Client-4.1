@@ -63,10 +63,31 @@ namespace Client_4._1
 
         public void ReceiveMessage(string message)
         {
-            Invoke(new Action(() =>
+            // Kiểm tra xem form đã có handle chưa, nếu chưa thì chờ đến khi form sẵn sàng
+            if (this.IsHandleCreated)
             {
-                rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
-            }));
+                Invoke(new Action(() =>
+                {
+                    rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
+                }));
+            }
+            else
+            {
+                // Đảm bảo rằng hàm này sẽ chạy lại sau khi form đã được khởi tạo
+                this.HandleCreated += (s, e) =>
+                {
+                    Invoke(new Action(() =>
+                    {
+                        rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
+                    }));
+                };
+            }
         }
+
+        private void ChatForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            // Không cần làm gì đặc biệt, cửa sổ chat sẽ được loại bỏ khỏi danh sách trong Form1
+        }
+
     }
 }

@@ -14,8 +14,8 @@ namespace Client_4._1
         private string _userName;
         private bool _isConnected = false;
 
-        // Lưu trữ các cửa sổ ChatForm đã mở
         private Dictionary<string, ChatForm> _openChats = new Dictionary<string, ChatForm>();
+        private Dictionary<string, List<string>> _chatHistories = new Dictionary<string, List<string>>();
 
         public Form1()
         {
@@ -50,10 +50,7 @@ namespace Client_4._1
                 _isConnected = true;
                 AppendStatusMessage("Connected to the server!");
 
-                // Bắt đầu nhận tin nhắn từ server
                 new Thread(ReceiveMessages).Start();
-
-                // Gửi yêu cầu danh sách người dùng
                 RequestUserList();
             }
             catch (Exception ex)
@@ -98,12 +95,11 @@ namespace Client_4._1
                 string toUser = splitMessage[1].Trim();
                 string content = splitMessage[2].Trim();
 
-                if (toUser == _userName)  // Tin nhắn dành cho người dùng hiện tại
+                if (toUser == _userName)
                 {
                     OpenOrSendToChat(fromUser, content);
                 }
 
-                // Thông báo trạng thái ai nhắn đến ai trên rtbMessages
                 AppendStatusMessage($"Message from {fromUser} to {toUser}");
             }
         }
@@ -112,17 +108,34 @@ namespace Client_4._1
         {
             if (!_openChats.ContainsKey(fromUser))
             {
-                // Mở ChatForm mới nếu chưa tồn tại
                 Invoke(new Action(() =>
                 {
                     ChatForm chatForm = new ChatForm(_clientSocket, _userName, fromUser);
                     _openChats[fromUser] = chatForm;
+
+                    if (_chatHistories.ContainsKey(fromUser))
+                    {
+                        foreach (string msg in _chatHistories[fromUser])
+                        {
+                            chatForm.ReceiveMessage(msg);
+                        }
+                    }
+
+                    chatForm.FormClosed += (s, e) => _openChats.Remove(fromUser);
                     chatForm.Show();
                 }));
             }
 
-            // Gửi tin nhắn vào ChatForm tương ứng
-            _openChats[fromUser].ReceiveMessage($"{fromUser}: {messageContent}");
+            if (!_chatHistories.ContainsKey(fromUser))
+            {
+                _chatHistories[fromUser] = new List<string>();
+            }
+            _chatHistories[fromUser].Add($"{fromUser}: {messageContent}");
+
+            if (_openChats.ContainsKey(fromUser))
+            {
+                _openChats[fromUser].ReceiveMessage($"{fromUser}: {messageContent}");
+            }
         }
 
         private void AppendStatusMessage(string status)
