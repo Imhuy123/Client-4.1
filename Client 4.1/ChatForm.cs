@@ -27,7 +27,7 @@ namespace Client_4._1
         {
             if (e.KeyCode == Keys.Enter)
             {
-                e.SuppressKeyPress = true;
+                e.SuppressKeyPress = true; // Ngăn không cho tiếng bíp khi nhấn Enter
                 SendMessage();
             }
         }
@@ -52,13 +52,24 @@ namespace Client_4._1
 
             try
             {
-                _clientSocket.Send(messageBytes); // Gửi tin nhắn qua socket
-                txtMessage.Clear();
-                ReceiveMessage($"Me: {messageContent}"); // Hiển thị tin nhắn của chính người dùng
+                if (_clientSocket.Connected) // Kiểm tra kết nối trước khi gửi
+                {
+                    _clientSocket.Send(messageBytes); // Gửi tin nhắn qua socket
+                    txtMessage.Clear();
+                    ReceiveMessage($"Me: {messageContent}"); // Hiển thị tin nhắn của chính người dùng
+                }
+                else
+                {
+                    MessageBox.Show("You are not connected to the server.");
+                }
             }
             catch (SocketException ex)
             {
                 MessageBox.Show($"Failed to send message: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred: {ex.Message}");
             }
         }
 
@@ -69,24 +80,28 @@ namespace Client_4._1
                 Invoke(new Action(() =>
                 {
                     rtbChatHistory.AppendText($"{message}{Environment.NewLine}"); // Hiển thị tin nhắn
+                    rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+                    rtbChatHistory.ScrollToCaret(); // Tự động cuộn xuống cuối khi có tin nhắn mới
                 }));
             }
-            else
-            {
-                this.HandleCreated += (s, e) =>
-                {
-                    Invoke(new Action(() =>
-                    {
-                        rtbChatHistory.AppendText($"{message}{Environment.NewLine}"); // Hiển thị tin nhắn
-                    }));
-                };
-            }
-
-            // Tự động cuộn xuống cuối khi có tin nhắn mới
-            rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
-            rtbChatHistory.ScrollToCaret();
         }
 
+        // Phương thức để tải lịch sử chat
+        public void LoadChatHistory(List<string> chatHistory)
+        {
+            if (this.IsHandleCreated)
+            {
+                Invoke(new Action(() =>
+                {
+                    foreach (var msg in chatHistory)
+                    {
+                        rtbChatHistory.AppendText($"{msg}{Environment.NewLine}");
+                    }
+                    rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+                    rtbChatHistory.ScrollToCaret(); // Tự động cuộn xuống cuối khi có tin nhắn mới
+                }));
+            }
+        }
 
 
 

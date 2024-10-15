@@ -21,7 +21,7 @@ namespace Client_4._1
         public Form1()
         {
             InitializeComponent();
-            txtServerDNS.Text = "huynas123.synology.me";
+            txtServerDNS.Text = "huynas123.synology.me"; // Thay đổi theo server thực tế
             txtPort.Text = "8081";
 
             lstUsers.DoubleClick += lstUsers_DoubleClick;
@@ -32,7 +32,14 @@ namespace Client_4._1
         {
             _userName = txtUserName.Text.Trim();
             string serverAddress = txtServerDNS.Text.Trim();
-            int port = int.Parse(txtPort.Text.Trim());
+            int port;
+
+            // Kiểm tra xem cổng có phải là số hợp lệ không
+            if (!int.TryParse(txtPort.Text.Trim(), out port))
+            {
+                AppendStatusMessage("Invalid port number.");
+                return;
+            }
 
             ConnectToServer(serverAddress, port);
         }
@@ -57,9 +64,15 @@ namespace Client_4._1
                 new Thread(ReceiveMessages).Start();
                 RequestUserList();
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
                 AppendStatusMessage($"Connection error: {ex.Message}");
+                _isConnected = false; // Đặt lại trạng thái kết nối
+            }
+            catch (Exception ex)
+            {
+                AppendStatusMessage($"Error: {ex.Message}");
+                _isConnected = false; // Đặt lại trạng thái kết nối
             }
         }
 
@@ -83,10 +96,15 @@ namespace Client_4._1
                     }
                 }
             }
-            catch (Exception)
+            catch (SocketException ex)
             {
-                AppendStatusMessage("Server disconnected.");
-                _isConnected = false;
+                AppendStatusMessage($"Server disconnected: {ex.Message}");
+                _isConnected = false; // Đặt lại trạng thái kết nối
+            }
+            catch (Exception ex)
+            {
+                AppendStatusMessage($"Error receiving message: {ex.Message}");
+                _isConnected = false; // Đặt lại trạng thái kết nối
             }
         }
 
@@ -102,48 +120,65 @@ namespace Client_4._1
                 // Kiểm tra xem tin nhắn có liên quan đến người dùng hiện tại không
                 if (toUser == _userName || fromUser == _userName)
                 {
-                    OpenOrSendToChat(fromUser, content); // Mở hoặc gửi tin nhắn tới cửa sổ chat
-                    if (!_chatHistories.ContainsKey(fromUser))
+                    // Kiểm tra nếu tin nhắn đến từ chính người dùng
+                    if (fromUser != _userName) // Chỉ xử lý nếu không phải từ chính mình
                     {
-                        _chatHistories[fromUser] = new List<string>();
+                        // Kiểm tra nếu cửa sổ chat đã mở
+                        if (_openChats.ContainsKey(fromUser))
+                        {
+                            // Nếu cửa sổ chat đã mở, chỉ cần nhận tin nhắn
+                            _openChats[fromUser].ReceiveMessage($"{fromUser}: {content}");
+                        }
+                        else
+                        {
+                            // Nếu chưa mở, mở cửa sổ chat mới
+                            OpenOrSendToChat(fromUser, content);
+                        }
+
+                        if (!_chatHistories.ContainsKey(fromUser))
+                        {
+                            _chatHistories[fromUser] = new List<string>();
+                        }
+                        _chatHistories[fromUser].Add($"{fromUser}: {content}");
                     }
-                    _chatHistories[fromUser].Add($"{fromUser}: {content}");
+                    // Nếu từUser là chính mình, không làm gì cả
                 }
             }
+            else
+            {
+                AppendStatusMessage($"Received message in wrong format: {message}");
+            }
         }
 
 
 
-
-        private void OpenOrSendToChat(string user, string messageContent)
+    private void OpenOrSendToChat(string user, string messageContent)
+{
+    if (!_openChats.ContainsKey(user))
+    {
+        Invoke(new Action(() =>
         {
-            if (!_openChats.ContainsKey(user))
+            ChatForm chatForm = new ChatForm(_clientSocket, _userName, user);
+            _openChats[user] = chatForm;
+
+            // Tải lịch sử tin nhắn nếu có
+            if (_chatHistories.ContainsKey(user))
             {
-                Invoke(new Action(() =>
-                {
-                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, user);
-                    _openChats[user] = chatForm;
-
-                    // Hiển thị lịch sử tin nhắn nếu có
-                    if (_chatHistories.ContainsKey(user))
-                    {
-                        foreach (string msg in _chatHistories[user])
-                        {
-                            chatForm.ReceiveMessage(msg);
-                        }
-                    }
-
-                    chatForm.FormClosed += (s, e) => _openChats.Remove(user);
-                    chatForm.Show();
-                }));
+                chatForm.LoadChatHistory(_chatHistories[user]); // Gọi phương thức để tải lịch sử
             }
 
-            // Gửi tin nhắn tới cửa sổ chat
-            if (_openChats.ContainsKey(user))
-            {
-                _openChats[user].ReceiveMessage($"{user}: {messageContent}");
-            }
-        }
+            chatForm.FormClosed += (s, e) => _openChats.Remove(user);
+            chatForm.Show();
+        }));
+    }
+
+    // Gửi tin nhắn tới cửa sổ chat
+    if (_openChats.ContainsKey(user))
+    {
+        _openChats[user].ReceiveMessage($"{user}: {messageContent}");
+    }
+}
+
 
 
         private void AppendStatusMessage(string status)
@@ -204,9 +239,24 @@ namespace Client_4._1
 
             if (!string.IsNullOrEmpty(selectedUser))
             {
-                OpenOrSendToChat(selectedUser, $"Resuming chat with {selectedUser}");
+                // Kiểm tra xem có lịch sử tin nhắn không
+                if (!_openChats.ContainsKey(selectedUser))
+                {
+                    // Nếu chưa mở, mở cửa sổ chat mới
+                    OpenOrSendToChat(selectedUser, $"Resuming chat with {selectedUser}");
+                }
+                else
+                {
+                    // Nếu cửa sổ chat đã mở, có thể load lại lịch sử tin nhắn
+                    if (_chatHistories.ContainsKey(selectedUser))
+                    {
+                        _openChats[selectedUser].LoadChatHistory(_chatHistories[selectedUser]);
+                    }
+                }
             }
         }
+
+
 
         private void lstUsers_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -225,5 +275,16 @@ namespace Client_4._1
                 AppendStatusMessage($"Selected user from Messaged Users: {selectedUser}");
             }
         }
+
+        private void lstUsers_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            // Hàm này hiện tại không sử dụng
+        }
+        private void RequestChatHistory(string withUser)
+        {
+            string request = $"GetChatHistory:{withUser}<EOF>";
+            _clientSocket.Send(Encoding.UTF8.GetBytes(request));
+        }
+
     }
 }
