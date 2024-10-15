@@ -66,23 +66,25 @@ namespace Client_4._1
         {
             if (this.IsHandleCreated)
             {
-                // Nếu form đã được tạo, cập nhật lịch sử tin nhắn
                 Invoke(new Action(() =>
                 {
-                    rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
+                    rtbChatHistory.AppendText($"{message}{Environment.NewLine}"); // Hiển thị tin nhắn
                 }));
             }
             else
             {
-                // Đảm bảo lịch sử tin nhắn được cập nhật khi form sẵn sàng
                 this.HandleCreated += (s, e) =>
                 {
                     Invoke(new Action(() =>
                     {
-                        rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
+                        rtbChatHistory.AppendText($"{message}{Environment.NewLine}"); // Hiển thị tin nhắn
                     }));
                 };
             }
+
+            // Tự động cuộn xuống cuối khi có tin nhắn mới
+            rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+            rtbChatHistory.ScrollToCaret();
         }
 
         private void ChatForm_FormClosed(object sender, FormClosedEventArgs e)

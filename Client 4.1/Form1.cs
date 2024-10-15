@@ -99,20 +99,18 @@ namespace Client_4._1
                 string toUser = splitMessage[1].Trim();
                 string content = splitMessage[2].Trim();
 
+                // Kiểm tra xem tin nhắn có liên quan đến người dùng hiện tại không
                 if (toUser == _userName || fromUser == _userName)
                 {
-                    // Tự động mở cửa sổ chat nếu nhận được tin nhắn
                     OpenOrSendToChat(fromUser, content);
 
-                    // Thêm vào danh sách đã nhắn nếu chưa có
-                    if (!_messagedUsers.Contains(fromUser) && fromUser != _userName)
+                    // Lưu tin nhắn vào lịch sử
+                    if (!_chatHistories.ContainsKey(fromUser))
                     {
-                        _messagedUsers.Add(fromUser);
-                        UpdateMessagedUsersList();
+                        _chatHistories[fromUser] = new List<string>();
                     }
+                    _chatHistories[fromUser].Add($"{fromUser}: {content}");
                 }
-
-                AppendStatusMessage($"Message from {fromUser} to {toUser}: {content}");
             }
         }
 
@@ -125,6 +123,7 @@ namespace Client_4._1
                     ChatForm chatForm = new ChatForm(_clientSocket, _userName, user);
                     _openChats[user] = chatForm;
 
+                    // Hiển thị lịch sử tin nhắn nếu có
                     if (_chatHistories.ContainsKey(user))
                     {
                         foreach (string msg in _chatHistories[user])
@@ -138,14 +137,7 @@ namespace Client_4._1
                 }));
             }
 
-            // Lưu lịch sử tin nhắn
-            if (!_chatHistories.ContainsKey(user))
-            {
-                _chatHistories[user] = new List<string>();
-            }
-            _chatHistories[user].Add($"{user}: {messageContent}");
-
-            // Cập nhật tin nhắn trong cửa sổ chat nếu đang mở
+            // Gửi tin nhắn tới cửa sổ chat
             if (_openChats.ContainsKey(user))
             {
                 _openChats[user].ReceiveMessage($"{user}: {messageContent}");
@@ -213,27 +205,23 @@ namespace Client_4._1
                 OpenOrSendToChat(selectedUser, $"Resuming chat with {selectedUser}");
             }
         }
+
         private void lstUsers_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Xử lý khi mục được chọn thay đổi
             string selectedUser = lstUsers.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedUser))
             {
                 AppendStatusMessage($"Selected user: {selectedUser}");
             }
         }
+
         private void lstMessagedUsers_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Xử lý khi mục được chọn thay đổi trong danh sách đã nhắn tin
             string selectedUser = lstMessagedUsers.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedUser))
             {
                 AppendStatusMessage($"Selected user from Messaged Users: {selectedUser}");
             }
         }
-
-
-
-
     }
 }
