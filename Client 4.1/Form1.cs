@@ -152,32 +152,32 @@ namespace Client_4._1
 
 
 
-    private void OpenOrSendToChat(string user, string messageContent)
-{
-    if (!_openChats.ContainsKey(user))
-    {
-        Invoke(new Action(() =>
+        private void OpenOrSendToChat(string user, string messageContent)
         {
-            ChatForm chatForm = new ChatForm(_clientSocket, _userName, user);
-            _openChats[user] = chatForm;
-
-            // Tải lịch sử tin nhắn nếu có
-            if (_chatHistories.ContainsKey(user))
+            if (!_openChats.ContainsKey(user))
             {
-                chatForm.LoadChatHistory(_chatHistories[user]); // Gọi phương thức để tải lịch sử
+                Invoke(new Action(() =>
+                {
+                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, user);
+                    _openChats[user] = chatForm;
+
+                    // Tải lịch sử tin nhắn nếu có
+                    if (_chatHistories.ContainsKey(user))
+                    {
+                        chatForm.LoadChatHistory(_chatHistories[user]); // Gọi phương thức để tải lịch sử
+                    }
+
+                    chatForm.FormClosed += (s, e) => _openChats.Remove(user);
+                    chatForm.Show();
+                }));
             }
 
-            chatForm.FormClosed += (s, e) => _openChats.Remove(user);
-            chatForm.Show();
-        }));
-    }
-
-    // Gửi tin nhắn tới cửa sổ chat
-    if (_openChats.ContainsKey(user))
-    {
-        _openChats[user].ReceiveMessage($"{user}: {messageContent}");
-    }
-}
+            // Gửi tin nhắn tới cửa sổ chat
+            if (_openChats.ContainsKey(user))
+            {
+                _openChats[user].ReceiveMessage($"{user}: {messageContent}");
+            }
+        }
 
 
 
@@ -286,5 +286,9 @@ namespace Client_4._1
             _clientSocket.Send(Encoding.UTF8.GetBytes(request));
         }
 
+        private void label2_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
