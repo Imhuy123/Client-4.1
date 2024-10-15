@@ -20,6 +20,7 @@ namespace Client_4._1
 
             this.Text = $"Chat with {_chatWithUser}";
             txtMessage.KeyDown += TxtMessage_KeyDown;
+            this.FormClosed += ChatForm_FormClosed; // Đảm bảo form được xóa khỏi danh sách khi đóng
         }
 
         private void TxtMessage_KeyDown(object sender, KeyEventArgs e)
@@ -51,9 +52,9 @@ namespace Client_4._1
 
             try
             {
-                _clientSocket.Send(messageBytes);
+                _clientSocket.Send(messageBytes); // Gửi tin nhắn qua socket
                 txtMessage.Clear();
-                ReceiveMessage($"Me: {messageContent}");
+                ReceiveMessage($"Me: {messageContent}"); // Hiển thị tin nhắn của chính người dùng
             }
             catch (SocketException ex)
             {
@@ -63,9 +64,9 @@ namespace Client_4._1
 
         public void ReceiveMessage(string message)
         {
-            // Kiểm tra xem form đã có handle chưa, nếu chưa thì chờ đến khi form sẵn sàng
             if (this.IsHandleCreated)
             {
+                // Nếu form đã được tạo, cập nhật lịch sử tin nhắn
                 Invoke(new Action(() =>
                 {
                     rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
@@ -73,7 +74,7 @@ namespace Client_4._1
             }
             else
             {
-                // Đảm bảo rằng hàm này sẽ chạy lại sau khi form đã được khởi tạo
+                // Đảm bảo lịch sử tin nhắn được cập nhật khi form sẵn sàng
                 this.HandleCreated += (s, e) =>
                 {
                     Invoke(new Action(() =>
@@ -86,12 +87,14 @@ namespace Client_4._1
 
         private void ChatForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            // Không cần làm gì đặc biệt, cửa sổ chat sẽ được loại bỏ khỏi danh sách trong Form1
+            // Cửa sổ chat được loại bỏ khỏi danh sách trong Form1 khi đóng
         }
 
         private void rtbChatHistory_TextChanged(object sender, EventArgs e)
         {
-
+            // Tự động cuộn xuống cuối khi có tin nhắn mới
+            rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+            rtbChatHistory.ScrollToCaret();
         }
     }
 }

@@ -56,6 +56,8 @@
             lstUsers.Name = "lstUsers";
             lstUsers.Size = new Size(155, 244);
             lstUsers.TabIndex = 3;
+           
+
             lstUsers.DoubleClick += lstUsers_DoubleClick;
             // 
             // btnConnect

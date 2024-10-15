@@ -99,53 +99,56 @@ namespace Client_4._1
                 string toUser = splitMessage[1].Trim();
                 string content = splitMessage[2].Trim();
 
-                if (toUser == _userName)
+                if (toUser == _userName || fromUser == _userName)
                 {
+                    // Tự động mở cửa sổ chat nếu nhận được tin nhắn
                     OpenOrSendToChat(fromUser, content);
+
+                    // Thêm vào danh sách đã nhắn nếu chưa có
+                    if (!_messagedUsers.Contains(fromUser) && fromUser != _userName)
+                    {
+                        _messagedUsers.Add(fromUser);
+                        UpdateMessagedUsersList();
+                    }
                 }
 
-                AppendStatusMessage($"Message from {fromUser} to {toUser}");
+                AppendStatusMessage($"Message from {fromUser} to {toUser}: {content}");
             }
         }
 
-        private void OpenOrSendToChat(string fromUser, string messageContent)
+        private void OpenOrSendToChat(string user, string messageContent)
         {
-            if (!_openChats.ContainsKey(fromUser))
+            if (!_openChats.ContainsKey(user))
             {
                 Invoke(new Action(() =>
                 {
-                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, fromUser);
-                    _openChats[fromUser] = chatForm;
+                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, user);
+                    _openChats[user] = chatForm;
 
-                    if (_chatHistories.ContainsKey(fromUser))
+                    if (_chatHistories.ContainsKey(user))
                     {
-                        foreach (string msg in _chatHistories[fromUser])
+                        foreach (string msg in _chatHistories[user])
                         {
                             chatForm.ReceiveMessage(msg);
                         }
                     }
 
-                    chatForm.FormClosed += (s, e) => _openChats.Remove(fromUser);
+                    chatForm.FormClosed += (s, e) => _openChats.Remove(user);
                     chatForm.Show();
                 }));
             }
 
-            if (!_chatHistories.ContainsKey(fromUser))
+            // Lưu lịch sử tin nhắn
+            if (!_chatHistories.ContainsKey(user))
             {
-                _chatHistories[fromUser] = new List<string>();
+                _chatHistories[user] = new List<string>();
             }
-            _chatHistories[fromUser].Add($"{fromUser}: {messageContent}");
+            _chatHistories[user].Add($"{user}: {messageContent}");
 
-            if (_openChats.ContainsKey(fromUser))
+            // Cập nhật tin nhắn trong cửa sổ chat nếu đang mở
+            if (_openChats.ContainsKey(user))
             {
-                _openChats[fromUser].ReceiveMessage($"{fromUser}: {messageContent}");
-            }
-
-            // Thêm người dùng vào danh sách đã nhắn tin nếu chưa có
-            if (!_messagedUsers.Contains(fromUser))
-            {
-                _messagedUsers.Add(fromUser);
-                UpdateMessagedUsersList();
+                _openChats[user].ReceiveMessage($"{user}: {messageContent}");
             }
         }
 
@@ -187,27 +190,50 @@ namespace Client_4._1
 
         private void lstUsers_DoubleClick(object sender, EventArgs e)
         {
-            string chatWithUser = lstUsers.SelectedItem?.ToString();
+            string selectedUser = lstUsers.SelectedItem?.ToString();
 
-            if (!string.IsNullOrEmpty(chatWithUser))
+            if (!string.IsNullOrEmpty(selectedUser))
             {
-                OpenOrSendToChat(chatWithUser, $"Started chat with {chatWithUser}");
+                if (!_messagedUsers.Contains(selectedUser))
+                {
+                    _messagedUsers.Add(selectedUser);
+                    UpdateMessagedUsersList();
+                }
+
+                AppendStatusMessage($"User {selectedUser} added to Messaged Users.");
             }
         }
 
         private void lstMessagedUsers_DoubleClick(object sender, EventArgs e)
         {
-            string chatWithUser = lstMessagedUsers.SelectedItem?.ToString();
+            string selectedUser = lstMessagedUsers.SelectedItem?.ToString();
 
-            if (!string.IsNullOrEmpty(chatWithUser))
+            if (!string.IsNullOrEmpty(selectedUser))
             {
-                OpenOrSendToChat(chatWithUser, $"Resuming chat with {chatWithUser}");
+                OpenOrSendToChat(selectedUser, $"Resuming chat with {selectedUser}");
+            }
+        }
+        private void lstUsers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Xử lý khi mục được chọn thay đổi
+            string selectedUser = lstUsers.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(selectedUser))
+            {
+                AppendStatusMessage($"Selected user: {selectedUser}");
+            }
+        }
+        private void lstMessagedUsers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Xử lý khi mục được chọn thay đổi trong danh sách đã nhắn tin
+            string selectedUser = lstMessagedUsers.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(selectedUser))
+            {
+                AppendStatusMessage($"Selected user from Messaged Users: {selectedUser}");
             }
         }
 
-        private void lstMessagedUsers_SelectedIndexChanged(object sender, EventArgs e)
-        {
 
-        }
+
+
     }
 }
