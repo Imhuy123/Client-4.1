@@ -89,5 +89,9 @@ namespace Client_4._1
             // Không cần làm gì đặc biệt, cửa sổ chat sẽ được loại bỏ khỏi danh sách trong Form1
         }
 
+        private void rtbChatHistory_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }

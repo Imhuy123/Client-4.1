@@ -11,10 +11,10 @@
         private System.Windows.Forms.Button btnConnect;
         private System.Windows.Forms.Button btnSend;
         private System.Windows.Forms.RichTextBox rtbMessages;
-        private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label lblConnectionStatus;
-      
-      
+
+
+
 
 
         private void InitializeComponent()
@@ -25,80 +25,81 @@
             lstUsers = new ListBox();
             btnConnect = new Button();
             rtbMessages = new RichTextBox();
-            lblStatus = new Label();
+            lstMessagedUsers = new ListBox();
             SuspendLayout();
             // 
             // txtUserName
             // 
-            txtUserName.Location = new Point(12, 12);
+            txtUserName.Location = new Point(17, 18);
             txtUserName.Name = "txtUserName";
             txtUserName.PlaceholderText = "Enter your username";
-            txtUserName.Size = new Size(150, 23);
+            txtUserName.Size = new Size(150, 27);
             txtUserName.TabIndex = 0;
             // 
             // txtServerDNS
             // 
-            txtServerDNS.Location = new Point(12, 38);
+            txtServerDNS.Location = new Point(17, 70);
             txtServerDNS.Name = "txtServerDNS";
-            txtServerDNS.Size = new Size(150, 23);
+            txtServerDNS.Size = new Size(150, 27);
             txtServerDNS.TabIndex = 1;
             // 
             // txtPort
             // 
-            txtPort.Location = new Point(12, 64);
+            txtPort.Location = new Point(17, 114);
             txtPort.Name = "txtPort";
-            txtPort.Size = new Size(150, 23);
+            txtPort.Size = new Size(150, 27);
             txtPort.TabIndex = 2;
             // 
             // lstUsers
             // 
-            lstUsers.ItemHeight = 15;
-            lstUsers.Location = new Point(12, 101);
+            lstUsers.Location = new Point(232, 182);
             lstUsers.Name = "lstUsers";
-            lstUsers.Size = new Size(150, 199);
+            lstUsers.Size = new Size(155, 244);
             lstUsers.TabIndex = 3;
-            this.lstUsers.DoubleClick += new System.EventHandler(this.lstUsers_DoubleClick);
-
+            lstUsers.DoubleClick += lstUsers_DoubleClick;
             // 
             // btnConnect
             // 
-            btnConnect.Location = new Point(180, 12);
+            btnConnect.Location = new Point(249, 18);
             btnConnect.Name = "btnConnect";
-            btnConnect.Size = new Size(75, 23);
+            btnConnect.Size = new Size(101, 85);
             btnConnect.TabIndex = 5;
             btnConnect.Text = "Connect";
             btnConnect.Click += btnConnect_Click;
             // 
             // rtbMessages
             // 
-            rtbMessages.Location = new Point(180, 160);
+            rtbMessages.Location = new Point(58, 457);
             rtbMessages.Name = "rtbMessages";
-            rtbMessages.Size = new Size(300, 140);
-            rtbMessages.TabIndex = 7;
+            rtbMessages.Size = new Size(292, 69);
+            rtbMessages.TabIndex = 10;
             rtbMessages.Text = "";
             // 
-            // lblStatus
+            // lstMessagedUsers
             // 
-            lblStatus.Location = new Point(302, 16);
-            lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(200, 23);
-            lblStatus.TabIndex = 8;
-            lblStatus.Text = "Disconnected";
+            lstMessagedUsers.Location = new Point(12, 182);
+            lstMessagedUsers.Name = "lstMessagedUsers";
+            lstMessagedUsers.Size = new Size(155, 244);
+            lstMessagedUsers.TabIndex = 9;
+            lstMessagedUsers.SelectedIndexChanged += lstMessagedUsers_SelectedIndexChanged;
             // 
             // Form1
             // 
-            ClientSize = new Size(500, 350);
+            ClientSize = new Size(419, 583);
+            Controls.Add(lstMessagedUsers);
             Controls.Add(txtUserName);
             Controls.Add(txtServerDNS);
             Controls.Add(txtPort);
             Controls.Add(lstUsers);
             Controls.Add(btnConnect);
             Controls.Add(rtbMessages);
-            Controls.Add(lblStatus);
             Name = "Form1";
             Text = "Socket Client GUI";
             ResumeLayout(false);
             PerformLayout();
         }
+
+        private ListBox lstMessagedUsers;
+
     }
 }

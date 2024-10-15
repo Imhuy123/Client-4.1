@@ -16,12 +16,16 @@ namespace Client_4._1
 
         private Dictionary<string, ChatForm> _openChats = new Dictionary<string, ChatForm>();
         private Dictionary<string, List<string>> _chatHistories = new Dictionary<string, List<string>>();
+        private List<string> _messagedUsers = new List<string>(); // Danh sách đã nhắn tin
 
         public Form1()
         {
             InitializeComponent();
             txtServerDNS.Text = "huynas123.synology.me";
             txtPort.Text = "8081";
+
+            lstUsers.DoubleClick += lstUsers_DoubleClick;
+            lstMessagedUsers.DoubleClick += lstMessagedUsers_DoubleClick;
         }
 
         private void btnConnect_Click(object sender, EventArgs e)
@@ -136,6 +140,13 @@ namespace Client_4._1
             {
                 _openChats[fromUser].ReceiveMessage($"{fromUser}: {messageContent}");
             }
+
+            // Thêm người dùng vào danh sách đã nhắn tin nếu chưa có
+            if (!_messagedUsers.Contains(fromUser))
+            {
+                _messagedUsers.Add(fromUser);
+                UpdateMessagedUsersList();
+            }
         }
 
         private void AppendStatusMessage(string status)
@@ -162,6 +173,12 @@ namespace Client_4._1
             }
         }
 
+        private void UpdateMessagedUsersList()
+        {
+            lstMessagedUsers.Items.Clear();
+            lstMessagedUsers.Items.AddRange(_messagedUsers.ToArray());
+        }
+
         private void RequestUserList()
         {
             byte[] requestBytes = Encoding.UTF8.GetBytes("GetUserList<EOF>");
@@ -176,6 +193,21 @@ namespace Client_4._1
             {
                 OpenOrSendToChat(chatWithUser, $"Started chat with {chatWithUser}");
             }
+        }
+
+        private void lstMessagedUsers_DoubleClick(object sender, EventArgs e)
+        {
+            string chatWithUser = lstMessagedUsers.SelectedItem?.ToString();
+
+            if (!string.IsNullOrEmpty(chatWithUser))
+            {
+                OpenOrSendToChat(chatWithUser, $"Resuming chat with {chatWithUser}");
+            }
+        }
+
+        private void lstMessagedUsers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }

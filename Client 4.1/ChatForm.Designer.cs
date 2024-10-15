@@ -18,49 +18,54 @@
 
         private void InitializeComponent()
         {
-            this.rtbChatHistory = new System.Windows.Forms.RichTextBox();
-            this.txtMessage = new System.Windows.Forms.TextBox();
-            this.btnSend = new System.Windows.Forms.Button();
-            this.SuspendLayout();
+            rtbChatHistory = new RichTextBox();
+            txtMessage = new TextBox();
+            btnSend = new Button();
+            SuspendLayout();
             // 
             // rtbChatHistory
             // 
-            this.rtbChatHistory.Location = new System.Drawing.Point(12, 12);
-            this.rtbChatHistory.Name = "rtbChatHistory";
-            this.rtbChatHistory.ReadOnly = true;
-            this.rtbChatHistory.Size = new System.Drawing.Size(360, 300);
-            this.rtbChatHistory.TabIndex = 0;
-            this.rtbChatHistory.Text = "";
+            rtbChatHistory.Location = new Point(16, 18);
+            rtbChatHistory.Margin = new Padding(4, 5, 4, 5);
+            rtbChatHistory.Name = "rtbChatHistory";
+            rtbChatHistory.ReadOnly = true;
+            rtbChatHistory.Size = new Size(483, 435);
+            rtbChatHistory.TabIndex = 0;
+            rtbChatHistory.Text = "";
+            rtbChatHistory.TextChanged += rtbChatHistory_TextChanged;
             // 
             // txtMessage
             // 
-            this.txtMessage.Location = new System.Drawing.Point(12, 330);
-            this.txtMessage.Name = "txtMessage";
-            this.txtMessage.Size = new System.Drawing.Size(280, 20);
-            this.txtMessage.TabIndex = 1;
+            txtMessage.Location = new Point(16, 508);
+            txtMessage.Margin = new Padding(4, 5, 4, 5);
+            txtMessage.Name = "txtMessage";
+            txtMessage.Size = new Size(372, 27);
+            txtMessage.TabIndex = 1;
             // 
             // btnSend
             // 
-            this.btnSend.Location = new System.Drawing.Point(300, 330);
-            this.btnSend.Name = "btnSend";
-            this.btnSend.Size = new System.Drawing.Size(75, 23);
-            this.btnSend.TabIndex = 2;
-            this.btnSend.Text = "Send";
-            this.btnSend.UseVisualStyleBackColor = true;
-            this.btnSend.Click += new System.EventHandler(this.btnSend_Click);
+            btnSend.Location = new Point(400, 508);
+            btnSend.Margin = new Padding(4, 5, 4, 5);
+            btnSend.Name = "btnSend";
+            btnSend.Size = new Size(100, 35);
+            btnSend.TabIndex = 2;
+            btnSend.Text = "Send";
+            btnSend.UseVisualStyleBackColor = true;
+            btnSend.Click += btnSend_Click;
             // 
             // ChatForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(384, 361);
-            this.Controls.Add(this.btnSend);
-            this.Controls.Add(this.txtMessage);
-            this.Controls.Add(this.rtbChatHistory);
-            this.Name = "ChatForm";
-            this.Text = "Chat";
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(521, 569);
+            Controls.Add(btnSend);
+            Controls.Add(txtMessage);
+            Controls.Add(rtbChatHistory);
+            Margin = new Padding(4, 5, 4, 5);
+            Name = "ChatForm";
+            Text = "Chat";
+            ResumeLayout(false);
+            PerformLayout();
         }
     }
 }
