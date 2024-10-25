@@ -1,9 +1,9 @@
-**Giới thiệu 
+Giới thiệu 
     Đây là ứng dụng code nhắn tin sử dụng socket để nhắn tin thông qua một sever trung gian 
-**Điều kiện 
+Điều kiện 
     +Có kết nối mạng, sử dụng dotnet8 
     +Code người dùng nhắn tin đã được định sẵn địa chỉ và port tôi quy định địa chỉ kết nối là dns huynas123.synology.me port là 8081 
-**Chức năng
+Chức năng
      +Hiển thị danh sách các người kết nối nhận được từ sever 
      +Chọn từ những người kết nối trong danh sách sẽ tự động chuyển qua danh sách nhắn tin 
      +Double click vào danh sách nhắn tin để mở Chatfom để thực hiện nhắn tin
