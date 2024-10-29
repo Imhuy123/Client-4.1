@@ -1,7 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Paddings;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Security;
 
 namespace Client_4._1
 {
@@ -10,6 +17,12 @@ namespace Client_4._1
         private readonly Socket _clientSocket;
         private readonly string _currentUser;
         private readonly string _chatWithUser;
+
+        // Khóa 32 bytes cho AES-256
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("12345678901234567890123456789012"); // 32 ký tự
+
+        // IV 16 bytes cho AES
+        private static readonly byte[] IV = Encoding.UTF8.GetBytes("1234567890123456"); // 16 ký tự
 
         public ChatForm(Socket clientSocket, string currentUser, string chatWithUser)
         {
@@ -20,14 +33,14 @@ namespace Client_4._1
 
             this.Text = $"Chat with {_chatWithUser}";
             txtMessage.KeyDown += TxtMessage_KeyDown;
-            this.FormClosed += ChatForm_FormClosed; // Đảm bảo form được xóa khỏi danh sách khi đóng
+            this.FormClosed += ChatForm_FormClosed;
         }
 
         private void TxtMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                e.SuppressKeyPress = true; // Ngăn không cho tiếng bíp khi nhấn Enter
+                e.SuppressKeyPress = true;
                 SendMessage();
             }
         }
@@ -47,16 +60,17 @@ namespace Client_4._1
                 return;
             }
 
-            string message = $"{_currentUser}->{_chatWithUser}:{messageContent}<EOF>";
-            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-
             try
             {
-                if (_clientSocket.Connected) // Kiểm tra kết nối trước khi gửi
+                string encryptedMessage = EncryptMessage(messageContent);
+                string message = $"{_currentUser}->{_chatWithUser}:{encryptedMessage}<EOF>";
+                byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+
+                if (_clientSocket.Connected)
                 {
-                    _clientSocket.Send(messageBytes); // Gửi tin nhắn qua socket
+                    _clientSocket.Send(messageBytes);
                     txtMessage.Clear();
-                    ReceiveMessage($"Me: {messageContent}"); // Hiển thị tin nhắn của chính người dùng
+                    ReceiveMessage($"Me: {messageContent}");
                 }
                 else
                 {
@@ -73,20 +87,38 @@ namespace Client_4._1
             }
         }
 
-        public void ReceiveMessage(string message)
+        public void ReceiveMessage(string encryptedMessage)
         {
-            if (this.IsHandleCreated)
+            // Loại bỏ phần "<EOF>"
+            string messageContent = encryptedMessage.Replace("<EOF>", string.Empty);
+
+            // In ra chuỗi đã xử lý
+            Console.WriteLine($"Message content for decryption: {messageContent}");
+
+            try
             {
-                Invoke(new Action(() =>
+                // Gọi hàm giải mã
+                string decryptedMessage = DecryptMessage(messageContent);
+                if (this.IsHandleCreated && decryptedMessage != null)
                 {
-                    rtbChatHistory.AppendText($"{message}{Environment.NewLine}"); // Hiển thị tin nhắn
-                    rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
-                    rtbChatHistory.ScrollToCaret(); // Tự động cuộn xuống cuối khi có tin nhắn mới
-                }));
+                    Invoke(new Action(() =>
+                    {
+                        rtbChatHistory.AppendText($"{decryptedMessage}{Environment.NewLine}");
+                        rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+                        rtbChatHistory.ScrollToCaret();
+                    }));
+                }
+            }
+            catch (FormatException)
+            {
+                MessageBox.Show("The encrypted text is not in a valid Base-64 format.");
             }
         }
 
-        // Phương thức để tải lịch sử chat
+
+
+
+
         public void LoadChatHistory(List<string> chatHistory)
         {
             if (this.IsHandleCreated)
@@ -95,24 +127,68 @@ namespace Client_4._1
                 {
                     foreach (var msg in chatHistory)
                     {
-                        rtbChatHistory.AppendText($"{msg}{Environment.NewLine}");
+                        string decryptedMsg = DecryptMessage(msg);
+                        rtbChatHistory.AppendText($"{decryptedMsg}{Environment.NewLine}");
                     }
                     rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
-                    rtbChatHistory.ScrollToCaret(); // Tự động cuộn xuống cuối khi có tin nhắn mới
+                    rtbChatHistory.ScrollToCaret();
                 }));
             }
         }
 
+        private string EncryptMessage(string plainText)
+        {
+            var engine = new PaddedBufferedBlockCipher(new CbcBlockCipher(new AesEngine())); // Sử dụng chế độ CBC
+            var keyParam = new KeyParameter(Key);
+            var parameters = new ParametersWithIV(keyParam, IV);
+            engine.Init(true, parameters); // true cho mã hóa
+
+            byte[] inputBytes = Encoding.UTF8.GetBytes(plainText);
+            byte[] encryptedBytes = new byte[engine.GetOutputSize(inputBytes.Length)];
+            int length = engine.ProcessBytes(inputBytes, 0, inputBytes.Length, encryptedBytes, 0);
+            length += engine.DoFinal(encryptedBytes, length);
+
+            return Convert.ToBase64String(encryptedBytes, 0, length);
+        }
+
+        private string DecryptMessage(string encryptedText)
+        {
+            try
+            {
+                // Kiểm tra nếu chuỗi không phải là Base64 hợp lệ
+                byte[] encryptedBytes = Convert.FromBase64String(encryptedText);
+
+                var engine = new PaddedBufferedBlockCipher(new CbcBlockCipher(new AesEngine())); // Sử dụng chế độ CBC
+                var keyParam = new KeyParameter(Key);
+                var parameters = new ParametersWithIV(keyParam, IV);
+                engine.Init(false, parameters); // false cho giải mã
+
+                byte[] decryptedBytes = new byte[engine.GetOutputSize(encryptedBytes.Length)];
+                int length = engine.ProcessBytes(encryptedBytes, 0, encryptedBytes.Length, decryptedBytes, 0);
+                length += engine.DoFinal(decryptedBytes, length);
+
+                return Encoding.UTF8.GetString(decryptedBytes, 0, length);
+            }
+            catch (FormatException)
+            {
+                MessageBox.Show("The encrypted text is not in a valid Base-64 format.");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"An error occurred during decryption: {ex.Message}");
+                return null;
+            }
+        }
 
 
         private void ChatForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            // Cửa sổ chat được loại bỏ khỏi danh sách trong Form1 khi đóng
+            // Đóng form chat
         }
 
         private void rtbChatHistory_TextChanged(object sender, EventArgs e)
         {
-            // Tự động cuộn xuống cuối khi có tin nhắn mới
             rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
             rtbChatHistory.ScrollToCaret();
         }
