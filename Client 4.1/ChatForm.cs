@@ -3,12 +3,6 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
-using Org.BouncyCastle.Crypto;
-using Org.BouncyCastle.Crypto.Engines;
-using Org.BouncyCastle.Crypto.Modes;
-using Org.BouncyCastle.Crypto.Paddings;
-using Org.BouncyCastle.Crypto.Parameters;
-using Org.BouncyCastle.Security;
 
 namespace Client_4._1
 {
@@ -17,12 +11,6 @@ namespace Client_4._1
         private readonly Socket _clientSocket;
         private readonly string _currentUser;
         private readonly string _chatWithUser;
-
-        // Khóa 32 bytes cho AES-256
-        private static readonly byte[] Key = Encoding.UTF8.GetBytes("12345678901234567890123456789012"); // 32 ký tự
-
-        // IV 16 bytes cho AES
-        private static readonly byte[] IV = Encoding.UTF8.GetBytes("1234567890123456"); // 16 ký tự
 
         public ChatForm(Socket clientSocket, string currentUser, string chatWithUser)
         {
@@ -62,7 +50,10 @@ namespace Client_4._1
 
             try
             {
-                string encryptedMessage = EncryptMessage(messageContent);
+                // Mã hóa tin nhắn
+                string encryptedMessage = BouncyCastleEncryptionHelper.Encrypt(messageContent);
+                AppendLog($"[SendMessage] Encrypted Message: {encryptedMessage}");
+
                 string message = $"{_currentUser}->{_chatWithUser}:{encryptedMessage}<EOF>";
                 byte[] messageBytes = Encoding.UTF8.GetBytes(message);
 
@@ -70,49 +61,65 @@ namespace Client_4._1
                 {
                     _clientSocket.Send(messageBytes);
                     txtMessage.Clear();
+
+                    // Hiển thị tin nhắn gửi đi trên cửa sổ chat
                     ReceiveMessage($"Me: {messageContent}");
+                    AppendLog($"[SendMessage] Message sent successfully to {_chatWithUser}: {messageContent}");
                 }
                 else
                 {
                     MessageBox.Show("You are not connected to the server.");
+                    AppendLog("[ERROR] Failed to send message - not connected to the server.");
                 }
             }
             catch (SocketException ex)
             {
                 MessageBox.Show($"Failed to send message: {ex.Message}");
+                AppendLog($"[ERROR] Failed to send message: {ex.Message}");
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"An error occurred: {ex.Message}");
+                AppendLog($"[ERROR] An error occurred: {ex.Message}");
             }
         }
 
+
+
         public void ReceiveMessage(string encryptedMessage)
         {
-            // Loại bỏ phần "<EOF>"
+            // Loại bỏ "<EOF>" nếu có trong tin nhắn
             string messageContent = encryptedMessage.Replace("<EOF>", string.Empty);
+            AppendLog($"[ReceiveMessage] Raw Received = {encryptedMessage}");
+            AppendLog($"[ReceiveMessage] Without <EOF> = {messageContent}");
 
-            // In ra chuỗi đã xử lý
-            Console.WriteLine($"Message content for decryption: {messageContent}");
+            // Kiểm tra nếu tin nhắn là dạng mã hóa (không cần kiểm tra Base64 ở bước này)
+            AppendLog("[INFO] Displaying encrypted message directly.");
+            DisplayMessage($"Encrypted Message: {messageContent}");
+        }
 
-            try
+
+
+        // Hàm hiển thị tin nhắn ra cửa sổ chat
+        private void DisplayMessage(string message)
+        {
+            if (this.IsHandleCreated)
             {
-                // Gọi hàm giải mã
-                string decryptedMessage = DecryptMessage(messageContent);
-                if (this.IsHandleCreated && decryptedMessage != null)
+                Invoke(new Action(() =>
                 {
-                    Invoke(new Action(() =>
-                    {
-                        rtbChatHistory.AppendText($"{decryptedMessage}{Environment.NewLine}");
-                        rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
-                        rtbChatHistory.ScrollToCaret();
-                    }));
-                }
+                    rtbChatHistory.AppendText($"{message}{Environment.NewLine}");
+                    rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+                    rtbChatHistory.ScrollToCaret();
+                }));
             }
-            catch (FormatException)
-            {
-                MessageBox.Show("The encrypted text is not in a valid Base-64 format.");
-            }
+        }
+
+
+
+        private bool IsBase64String(string base64)
+        {
+            Span<byte> buffer = new Span<byte>(new byte[base64.Length]);
+            return Convert.TryFromBase64String(base64, buffer, out _);
         }
 
 
@@ -127,64 +134,31 @@ namespace Client_4._1
                 {
                     foreach (var msg in chatHistory)
                     {
-                        string decryptedMsg = DecryptMessage(msg);
-                        rtbChatHistory.AppendText($"{decryptedMsg}{Environment.NewLine}");
+                        try
+                        {
+                            // Giải mã từng tin nhắn trong lịch sử
+                            string decryptedMsg = BouncyCastleEncryptionHelper.Decrypt(msg);
+                            rtbChatHistory.AppendText($"{decryptedMsg}{Environment.NewLine}");
+                            AppendLog($"[LoadChatHistory] Decrypted message from history: {decryptedMsg}");
+                        }
+                        catch (Exception ex)
+                        {
+                            AppendLog($"[ERROR] Failed to decrypt a message in chat history: {ex.Message}");
+                        }
                     }
                     rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
                     rtbChatHistory.ScrollToCaret();
+                    AppendLog("[LoadChatHistory] Chat history loaded successfully.");
                 }));
             }
         }
 
-        private string EncryptMessage(string plainText)
-        {
-            var engine = new PaddedBufferedBlockCipher(new CbcBlockCipher(new AesEngine())); // Sử dụng chế độ CBC
-            var keyParam = new KeyParameter(Key);
-            var parameters = new ParametersWithIV(keyParam, IV);
-            engine.Init(true, parameters); // true cho mã hóa
-
-            byte[] inputBytes = Encoding.UTF8.GetBytes(plainText);
-            byte[] encryptedBytes = new byte[engine.GetOutputSize(inputBytes.Length)];
-            int length = engine.ProcessBytes(inputBytes, 0, inputBytes.Length, encryptedBytes, 0);
-            length += engine.DoFinal(encryptedBytes, length);
-
-            return Convert.ToBase64String(encryptedBytes, 0, length);
-        }
-
-        private string DecryptMessage(string encryptedText)
-        {
-            try
-            {
-                // Kiểm tra nếu chuỗi không phải là Base64 hợp lệ
-                byte[] encryptedBytes = Convert.FromBase64String(encryptedText);
-
-                var engine = new PaddedBufferedBlockCipher(new CbcBlockCipher(new AesEngine())); // Sử dụng chế độ CBC
-                var keyParam = new KeyParameter(Key);
-                var parameters = new ParametersWithIV(keyParam, IV);
-                engine.Init(false, parameters); // false cho giải mã
-
-                byte[] decryptedBytes = new byte[engine.GetOutputSize(encryptedBytes.Length)];
-                int length = engine.ProcessBytes(encryptedBytes, 0, encryptedBytes.Length, decryptedBytes, 0);
-                length += engine.DoFinal(decryptedBytes, length);
-
-                return Encoding.UTF8.GetString(decryptedBytes, 0, length);
-            }
-            catch (FormatException)
-            {
-                MessageBox.Show("The encrypted text is not in a valid Base-64 format.");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"An error occurred during decryption: {ex.Message}");
-                return null;
-            }
-        }
 
 
         private void ChatForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             // Đóng form chat
+            // Xử lý các tài nguyên khi form bị đóng, nếu cần
         }
 
         private void rtbChatHistory_TextChanged(object sender, EventArgs e)
@@ -192,5 +166,19 @@ namespace Client_4._1
             rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
             rtbChatHistory.ScrollToCaret();
         }
+        private void AppendLog(string logMessage)
+        {
+            if (rtbLog.InvokeRequired)
+            {
+                rtbLog.Invoke(new Action(() => rtbLog.AppendText($"{logMessage}{Environment.NewLine}")));
+            }
+            else
+            {
+                rtbLog.AppendText($"{logMessage}{Environment.NewLine}");
+            }
+            rtbLog.SelectionStart = rtbLog.Text.Length;
+            rtbLog.ScrollToCaret();
+        }
+
     }
 }

@@ -21,6 +21,7 @@
             rtbChatHistory = new RichTextBox();
             txtMessage = new TextBox();
             btnSend = new Button();
+            rtbLog = new RichTextBox();
             SuspendLayout();
             // 
             // rtbChatHistory
@@ -29,7 +30,7 @@
             rtbChatHistory.Margin = new Padding(4, 5, 4, 5);
             rtbChatHistory.Name = "rtbChatHistory";
             rtbChatHistory.ReadOnly = true;
-            rtbChatHistory.Size = new Size(483, 435);
+            rtbChatHistory.Size = new Size(492, 307);
             rtbChatHistory.TabIndex = 0;
             rtbChatHistory.Text = "";
             rtbChatHistory.TextChanged += rtbChatHistory_TextChanged;
@@ -53,11 +54,20 @@
             btnSend.UseVisualStyleBackColor = true;
             btnSend.Click += btnSend_Click;
             // 
+            // rtbLog
+            // 
+            rtbLog.Location = new Point(24, 359);
+            rtbLog.Name = "rtbLog";
+            rtbLog.Size = new Size(484, 113);
+            rtbLog.TabIndex = 3;
+            rtbLog.Text = "";
+            // 
             // ChatForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(521, 569);
+            Controls.Add(rtbLog);
             Controls.Add(btnSend);
             Controls.Add(txtMessage);
             Controls.Add(rtbChatHistory);
@@ -67,5 +77,7 @@
             ResumeLayout(false);
             PerformLayout();
         }
+
+        private RichTextBox rtbLog;
     }
 }
