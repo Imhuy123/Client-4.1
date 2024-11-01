@@ -110,6 +110,15 @@ namespace Client_4._1
 
         private void HandleIncomingMessage(string message)
         {
+            if (string.IsNullOrEmpty(message))
+            {
+                AppendStatusMessage("Received an empty message.");
+                return;
+            }
+
+            // Log raw message for debugging purposes
+            Console.WriteLine($"[Received Raw Message]: {message}");
+
             string[] splitMessage = message.Split(new[] { "->", ":" }, StringSplitOptions.None);
             if (splitMessage.Length == 3)
             {
@@ -120,18 +129,14 @@ namespace Client_4._1
                 // Kiểm tra xem tin nhắn có liên quan đến người dùng hiện tại không
                 if (toUser == _userName || fromUser == _userName)
                 {
-                    // Kiểm tra nếu tin nhắn đến từ chính người dùng
                     if (fromUser != _userName) // Chỉ xử lý nếu không phải từ chính mình
                     {
-                        // Kiểm tra nếu cửa sổ chat đã mở
                         if (_openChats.ContainsKey(fromUser))
                         {
-                            // Nếu cửa sổ chat đã mở, chỉ cần nhận tin nhắn
                             _openChats[fromUser].ReceiveMessage($"{fromUser}: {content}");
                         }
                         else
                         {
-                            // Nếu chưa mở, mở cửa sổ chat mới
                             OpenOrSendToChat(fromUser, content);
                         }
 
@@ -141,14 +146,21 @@ namespace Client_4._1
                         }
                         _chatHistories[fromUser].Add($"{fromUser}: {content}");
                     }
-                    // Nếu từUser là chính mình, không làm gì cả
                 }
             }
             else
             {
-                AppendStatusMessage($"Received message in wrong format: {message}");
+                // Append to status and show alert for format error
+                string errorMsg = $"Received message in unexpected format: {message}";
+                AppendStatusMessage(errorMsg);
+
+                // Show alert message box for the user
+                MessageBox.Show(errorMsg, "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
+
+
+
 
 
 
@@ -243,7 +255,7 @@ namespace Client_4._1
                 if (!_openChats.ContainsKey(selectedUser))
                 {
                     // Nếu chưa mở, mở cửa sổ chat mới
-                    OpenOrSendToChat(selectedUser, $"Resuming chat with {selectedUser}");
+                    OpenOrSendToChat(selectedUser, $"{selectedUser}");
                 }
                 else
                 {
