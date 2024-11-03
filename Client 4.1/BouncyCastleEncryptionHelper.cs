@@ -63,7 +63,7 @@ namespace Client_4._1
             }
             catch (FormatException ex)
             {
-                MessageBox.Show("Decryption failed: The text is not in a valid Base-64 format.", "Decryption Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
                 return null;
             }
             catch (InvalidCipherTextException ex)

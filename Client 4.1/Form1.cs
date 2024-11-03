@@ -21,7 +21,7 @@ namespace Client_4._1
         public Form1()
         {
             InitializeComponent();
-            txtServerDNS.Text = "huynas123.synology.me"; // Thay đổi theo server thực tế
+            txtServerDNS.Text = "huynas123.synology.me"; 
             txtPort.Text = "8081";
 
             lstUsers.DoubleClick += lstUsers_DoubleClick;
@@ -174,10 +174,7 @@ namespace Client_4._1
                     _openChats[user] = chatForm;
 
                     // Tải lịch sử tin nhắn nếu có
-                    if (_chatHistories.ContainsKey(user))
-                    {
-                        chatForm.LoadChatHistory(_chatHistories[user]); // Gọi phương thức để tải lịch sử
-                    }
+                  
 
                     chatForm.FormClosed += (s, e) => _openChats.Remove(user);
                     chatForm.Show();
@@ -259,11 +256,8 @@ namespace Client_4._1
                 }
                 else
                 {
-                    // Nếu cửa sổ chat đã mở, có thể load lại lịch sử tin nhắn
-                    if (_chatHistories.ContainsKey(selectedUser))
-                    {
-                        _openChats[selectedUser].LoadChatHistory(_chatHistories[selectedUser]);
-                    }
+                    
+                    
                 }
             }
         }

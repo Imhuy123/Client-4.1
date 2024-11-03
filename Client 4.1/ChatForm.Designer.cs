@@ -1,4 +1,5 @@
-﻿namespace Client_4._1
+﻿
+namespace Client_4._1
 {
     partial class ChatForm
     {
@@ -22,22 +23,22 @@
             txtMessage = new TextBox();
             btnSend = new Button();
             rtbLog = new RichTextBox();
+            viewCall = new Button();
             SuspendLayout();
             // 
             // rtbChatHistory
             // 
-            rtbChatHistory.Location = new Point(16, 18);
+            rtbChatHistory.Location = new Point(13, 79);
             rtbChatHistory.Margin = new Padding(4, 5, 4, 5);
             rtbChatHistory.Name = "rtbChatHistory";
             rtbChatHistory.ReadOnly = true;
-            rtbChatHistory.Size = new Size(492, 307);
+            rtbChatHistory.Size = new Size(492, 195);
             rtbChatHistory.TabIndex = 0;
             rtbChatHistory.Text = "";
-            rtbChatHistory.TextChanged += rtbChatHistory_TextChanged;
             // 
             // txtMessage
             // 
-            txtMessage.Location = new Point(16, 508);
+            txtMessage.Location = new Point(13, 445);
             txtMessage.Margin = new Padding(4, 5, 4, 5);
             txtMessage.Name = "txtMessage";
             txtMessage.Size = new Size(372, 27);
@@ -45,7 +46,7 @@
             // 
             // btnSend
             // 
-            btnSend.Location = new Point(400, 508);
+            btnSend.Location = new Point(400, 445);
             btnSend.Margin = new Padding(4, 5, 4, 5);
             btnSend.Name = "btnSend";
             btnSend.Size = new Size(100, 35);
@@ -56,17 +57,28 @@
             // 
             // rtbLog
             // 
-            rtbLog.Location = new Point(24, 359);
+            rtbLog.Location = new Point(21, 296);
             rtbLog.Name = "rtbLog";
             rtbLog.Size = new Size(484, 113);
             rtbLog.TabIndex = 3;
             rtbLog.Text = "";
             // 
+            // viewCall
+            // 
+            viewCall.Location = new Point(374, 22);
+            viewCall.Name = "viewCall";
+            viewCall.Size = new Size(126, 29);
+            viewCall.TabIndex = 4;
+            viewCall.Text = "CALL";
+            viewCall.UseVisualStyleBackColor = true;
+            viewCall.Click += viewCall_Click;
+            // 
             // ChatForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(521, 569);
+            ClientSize = new Size(527, 501);
+            Controls.Add(viewCall);
             Controls.Add(rtbLog);
             Controls.Add(btnSend);
             Controls.Add(txtMessage);
@@ -78,6 +90,15 @@
             PerformLayout();
         }
 
+        private void rtbChatHistory_TextChanged(object sender, EventArgs e)
+        {
+            // Tự động cuộn xuống cuối khi có tin nhắn mới
+            rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
+            rtbChatHistory.ScrollToCaret();
+        }
+
+
         private RichTextBox rtbLog;
+        private Button viewCall;
     }
 }

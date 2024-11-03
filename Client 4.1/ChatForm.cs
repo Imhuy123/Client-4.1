@@ -74,11 +74,11 @@ namespace Client_4._1
             }
             catch (SocketException ex)
             {
-               
+
             }
             catch (Exception ex)
             {
-               
+
             }
         }
 
@@ -161,11 +161,9 @@ namespace Client_4._1
             // Cửa sổ chat được loại bỏ khỏi danh sách trong Form1 khi đóng
         }
 
-        private void rtbChatHistory_TextChanged(object sender, EventArgs e)
+        private void viewCall_Click(object sender, EventArgs e)
         {
-            // Tự động cuộn xuống cuối khi có tin nhắn mới
-            rtbChatHistory.SelectionStart = rtbChatHistory.Text.Length;
-            rtbChatHistory.ScrollToCaret();
+
         }
     }
 }
