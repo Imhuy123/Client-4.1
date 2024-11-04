@@ -28,12 +28,20 @@ namespace Client_4._1
         {
             InitializeComponent();
 
+            // Thiết lập UDP client và serverEndPoint cho kết nối video
             udpClient = new UdpClient();
             serverEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), udpPort);
 
+            // Gắn các sự kiện và bắt đầu luồng nhận dữ liệu video
             this.Load += VideoForm_Load;
             this.FormClosing += VideoForm_FormClosing;
 
+            InitializeUI();
+            StartReceivingVideo();
+        }
+
+        private void InitializeUI()
+        {
             audioStatusLabel = new Label
             {
                 Text = "",
@@ -49,11 +57,6 @@ namespace Client_4._1
 
             audio.Click += Audio_Click;
             audio.Text = "TẮT VOICE INPUT";
-
-            // Start listening for incoming UDP packets from server
-            receiveThread = new Thread(ReceiveFramesFromServer);
-            receiveThread.IsBackground = true;
-            receiveThread.Start();
         }
 
         private void VideoForm_Load(object sender, EventArgs e)
@@ -99,11 +102,8 @@ namespace Client_4._1
                 videoSource = null;
             }
 
-            if (pictureBox.Image != null)
-            {
-                pictureBox.Image.Dispose();
-                pictureBox.Image = null;
-            }
+            pictureBox.Image?.Dispose();
+            pictureBox.Image = null;
 
             isCameraOn = false;
             btnTurnoff.Text = "BẬT CAMERA";
@@ -125,19 +125,13 @@ namespace Client_4._1
         {
             if (isVoiceInputOn)
             {
-                if (waveIn != null)
-                {
-                    waveIn.StopRecording();
-                }
+                waveIn?.StopRecording();
                 audio.Text = "BẬT VOICE INPUT";
                 isVoiceInputOn = false;
             }
             else
             {
-                if (waveIn != null)
-                {
-                    waveIn.StartRecording();
-                }
+                waveIn?.StartRecording();
                 audio.Text = "TẮT VOICE INPUT";
                 isVoiceInputOn = true;
             }
@@ -149,21 +143,12 @@ namespace Client_4._1
             {
                 Bitmap resizedFrame = ResizeImageToFitPictureBox(frame, pictureBox.Width, pictureBox.Height);
 
-                if (pictureBox.InvokeRequired)
-                {
-                    pictureBox.Invoke(new MethodInvoker(() =>
-                    {
-                        pictureBox.Image?.Dispose();
-                        pictureBox.Image = resizedFrame;
-                    }));
-                }
-                else
+                pictureBox.Invoke(new MethodInvoker(() =>
                 {
                     pictureBox.Image?.Dispose();
                     pictureBox.Image = resizedFrame;
-                }
+                }));
 
-                // Send video frame to server over UDP
                 SendFrameToServer(resizedFrame);
             }
         }
@@ -180,10 +165,7 @@ namespace Client_4._1
 
         private Bitmap ResizeImageToFitPictureBox(Bitmap image, int width, int height)
         {
-            float ratioX = (float)width / image.Width;
-            float ratioY = (float)height / image.Height;
-            float ratio = Math.Min(ratioX, ratioY);
-
+            float ratio = Math.Min((float)width / image.Width, (float)height / image.Height);
             int newWidth = (int)(image.Width * ratio);
             int newHeight = (int)(image.Height * ratio);
 
@@ -199,22 +181,18 @@ namespace Client_4._1
         private void VideoForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             StopVideoStream();
-
-            if (waveIn != null)
-            {
-                waveIn.StopRecording();
-                waveIn.Dispose();
-                waveIn = null;
-            }
-
-            udpClient.Close(); // Close UDP client when form closes
-            isReceiving = false; // Set the flag to stop receiving
+            waveIn?.StopRecording();
+            waveIn?.Dispose();
+            udpClient.Close();
+            isReceiving = false;
         }
 
         private void InitializeAudio()
         {
-            waveIn = new WaveInEvent();
-            waveIn.WaveFormat = new WaveFormat(8000, 1);
+            waveIn = new WaveInEvent
+            {
+                WaveFormat = new WaveFormat(8000, 1)
+            };
             waveIn.DataAvailable += WaveIn_DataAvailable;
             waveIn.StartRecording();
         }
@@ -224,42 +202,32 @@ namespace Client_4._1
             if (!isVoiceInputOn) return;
 
             bool hasSound = false;
-
             for (int index = 0; index < e.BytesRecorded; index += 2)
             {
                 short sample = (short)((e.Buffer[index + 1] << 8) | e.Buffer[index]);
-                float sample32 = sample / 32768f;
-
-                if (Math.Abs(sample32) > 0.02)
+                if (Math.Abs(sample / 32768f) > 0.02)
                 {
                     hasSound = true;
                     break;
                 }
             }
 
-            if (hasSound)
-            {
-                UpdateAudioStatus("Có âm thanh");
-            }
-            else
-            {
-                UpdateAudioStatus("");
-            }
+            UpdateAudioStatus(hasSound ? "Có âm thanh" : "");
         }
 
         private void UpdateAudioStatus(string message)
         {
-            if (audioStatusLabel.InvokeRequired)
+            audioStatusLabel.Invoke(new MethodInvoker(() => audioStatusLabel.Text = message));
+        }
+
+
+        private void StartReceivingVideo()
+        {
+            receiveThread = new Thread(ReceiveFramesFromServer)
             {
-                audioStatusLabel.Invoke(new MethodInvoker(() =>
-                {
-                    audioStatusLabel.Text = message;
-                }));
-            }
-            else
-            {
-                audioStatusLabel.Text = message;
-            }
+                IsBackground = true
+            };
+            receiveThread.Start();
         }
 
         private void ReceiveFramesFromServer()
@@ -272,24 +240,16 @@ namespace Client_4._1
                     using (MemoryStream ms = new MemoryStream(receivedData))
                     {
                         Bitmap receivedFrame = new Bitmap(ms);
-                        if (pictureBox1.InvokeRequired)
-                        {
-                            pictureBox1.Invoke(new MethodInvoker(() =>
-                            {
-                                pictureBox1.Image?.Dispose();
-                                pictureBox1.Image = receivedFrame;
-                            }));
-                        }
-                        else
+                        pictureBox1.Invoke(new MethodInvoker(() =>
                         {
                             pictureBox1.Image?.Dispose();
                             pictureBox1.Image = receivedFrame;
-                        }
+                        }));
                     }
                 }
                 catch (SocketException)
                 {
-                    break; // Break on socket exceptions (e.g., form closing)
+                    break;
                 }
                 catch (Exception ex)
                 {

@@ -23,7 +23,7 @@ namespace Client_4._1
             txtMessage = new TextBox();
             btnSend = new Button();
             rtbLog = new RichTextBox();
-            viewCall = new Button();
+            btnVideoCall = new Button();
             SuspendLayout();
             // 
             // rtbChatHistory
@@ -63,22 +63,22 @@ namespace Client_4._1
             rtbLog.TabIndex = 3;
             rtbLog.Text = "";
             // 
-            // viewCall
+            // btnVideoCall
             // 
-            viewCall.Location = new Point(374, 22);
-            viewCall.Name = "viewCall";
-            viewCall.Size = new Size(126, 29);
-            viewCall.TabIndex = 4;
-            viewCall.Text = "CALL";
-            viewCall.UseVisualStyleBackColor = true;
-            viewCall.Click += viewCall_Click;
+            btnVideoCall.Location = new Point(374, 22);
+            btnVideoCall.Name = "btnVideoCall";
+            btnVideoCall.Size = new Size(126, 29);
+            btnVideoCall.TabIndex = 4;
+            btnVideoCall.Text = "CALL";
+            btnVideoCall.UseVisualStyleBackColor = true;
+            btnVideoCall.Click += viewCall_Click;
             // 
             // ChatForm
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(527, 501);
-            Controls.Add(viewCall);
+            Controls.Add(btnVideoCall);
             Controls.Add(rtbLog);
             Controls.Add(btnSend);
             Controls.Add(txtMessage);
@@ -99,6 +99,6 @@ namespace Client_4._1
 
 
         private RichTextBox rtbLog;
-        private Button viewCall;
+        private Button btnVideoCall;
     }
 }

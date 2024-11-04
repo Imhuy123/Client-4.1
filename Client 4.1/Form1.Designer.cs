@@ -88,7 +88,7 @@
             lstMessagedUsers.Name = "lstMessagedUsers";
             lstMessagedUsers.Size = new Size(155, 199);
             lstMessagedUsers.TabIndex = 9;
-            lstMessagedUsers.SelectedIndexChanged += lstMessagedUsers_SelectedIndexChanged;
+        
             // 
             // label1
             // 
@@ -107,7 +107,7 @@
             label2.Size = new Size(143, 15);
             label2.TabIndex = 12;
             label2.Text = "Danh sách người nhắn tín";
-            label2.Click += label2_Click;
+      
             // 
             // label3
             // 
