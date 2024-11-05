@@ -86,19 +86,18 @@ namespace Client_4._1
             {
                 IPHostEntry hostEntry = Dns.GetHostEntry(serverAddress);
                 IPAddress ipAddress = hostEntry.AddressList[0];
-                IPEndPoint udpEndPoint = new IPEndPoint(ipAddress, 8082); // Cổng UDP server
+                IPEndPoint udpEndPoint = new IPEndPoint(ipAddress, 8082);
 
-                // Tạo socket UDP và kết nối
                 _videoSocket = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-                _videoSocket.Bind(new IPEndPoint(IPAddress.Any, 0)); // Cho phép OS chọn cổng ngẫu nhiên
+                _videoSocket.Bind(new IPEndPoint(IPAddress.Any, 0));
                 _videoSocket.Connect(udpEndPoint);
 
-                // Lưu cổng nguồn của kết nối UDP
                 _udpSourcePort = ((IPEndPoint)_videoSocket.LocalEndPoint).Port;
                 AppendStatusMessage($"Connected to UDP server on port {_udpSourcePort}");
 
-                // Gửi gói tin đăng ký đến server
                 SendUdpRegisterMessage();
+
+                SendStunRequest(); // Gửi yêu cầu STUN sau khi kết nối UDP thành công
             }
             catch (SocketException ex)
             {
@@ -109,6 +108,7 @@ namespace Client_4._1
                 AppendStatusMessage($"Error: {ex.Message}");
             }
         }
+
 
         private void SendUdpRegisterMessage()
         {
@@ -251,8 +251,7 @@ namespace Client_4._1
             {
                 Invoke(new Action(() =>
                 {
-                    // Truyền _udpSourcePort khi tạo ChatForm
-                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, user, _videoSocket, _udpSourcePort + 1);
+                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, user, _videoSocket, _udpSourcePort + 1, _publicIP, _publicPort);
 
                     _openChats[user] = chatForm;
 
@@ -266,6 +265,7 @@ namespace Client_4._1
                 _openChats[user].ReceiveMessage($"{user}: {messageContent}");
             }
         }
+
 
 
         private void AppendStatusMessage(string status)
@@ -365,5 +365,62 @@ namespace Client_4._1
         private void label2_Click(object sender, EventArgs e)
         {
         }
+        private string _publicIP;
+        private int _publicPort;
+
+
+        private void SendStunRequest()
+        {
+            try
+            {
+                IPHostEntry hostEntry = Dns.GetHostEntry("huynas123.synology.me"); // Địa chỉ STUN server của bạn
+                IPAddress ipAddress = hostEntry.AddressList[0];
+                IPEndPoint stunServerEndPoint = new IPEndPoint(ipAddress, 8082);
+
+                using (var udpClient = new UdpClient(0))
+                {
+                    byte[] stunBindingRequest = Encoding.UTF8.GetBytes("STUN_BINDING_REQUEST<EOF>");
+                    udpClient.Send(stunBindingRequest, stunBindingRequest.Length, stunServerEndPoint);
+                    MessageBox.Show("Sent STUN Binding Request to server.", "STUN Process", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // Nhận phản hồi từ server STUN
+                    IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                    byte[] responseBytes = udpClient.Receive(ref remoteEndPoint);
+
+                    // Xử lý phản hồi từ STUN
+                    ParseStunResponse(responseBytes);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error sending STUN request: " + ex.Message, "STUN Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ParseStunResponse(byte[] response)
+        {
+            string responseMessage = Encoding.UTF8.GetString(response);
+
+            if (responseMessage.StartsWith("STUN_BINDING_RESPONSE"))
+            {
+                // Parse IP và Port từ thông điệp phản hồi
+                string[] parts = responseMessage.Split(new[] { ':', '<' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 3)
+                {
+                    _publicIP = parts[1].Trim();
+                    _publicPort = int.Parse(parts[2].Trim());
+
+                    // Hiển thị thông tin IP và Port công khai trong MessageBox
+                    MessageBox.Show($"Public IP: {_publicIP}\nPublic Port: {_publicPort}", "STUN Response", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Invalid STUN response format.", "STUN Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+
+
     }
 }
