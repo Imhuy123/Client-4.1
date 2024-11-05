@@ -13,12 +13,12 @@ namespace Client_4._1
         private Socket _clientSocket;
         private string _userName;
         private bool _isConnected = false;
-        private bool isUdpListenerRunning = true;
-
         private Dictionary<string, ChatForm> _openChats = new Dictionary<string, ChatForm>();
-        private List<string> _messagedUsers = new List<string>();
-        private Socket _videoSocket;
-        private const int VideoPort = 8082;
+        private Dictionary<string, List<string>> _chatHistories = new Dictionary<string, List<string>>();
+        private List<string> _messagedUsers = new List<string>(); // Danh sách đã nhắn tin
+        private Socket _videoSocket; // Socket riêng dành cho video call
+        private const int VideoPort = 8082; // Cổng riêng cho kết nối video
+        private int _udpSourcePort; // Thuộc tính lưu cổng nguồn UDP
 
         public Form1()
         {
@@ -27,8 +27,7 @@ namespace Client_4._1
             txtPort.Text = "8081";
 
             lstUsers.DoubleClick += lstUsers_DoubleClick;
-           
-            this.FormClosed += Form1_FormClosed;
+            lstMessagedUsers.DoubleClick += lstMessagedUsers_DoubleClick;
         }
 
         private void btnConnect_Click(object sender, EventArgs e)
@@ -50,7 +49,8 @@ namespace Client_4._1
         {
             try
             {
-                IPAddress ipAddress = Dns.GetHostEntry(serverAddress).AddressList[0];
+                IPHostEntry hostEntry = Dns.GetHostEntry(serverAddress);
+                IPAddress ipAddress = hostEntry.AddressList[0];
                 IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 
                 _clientSocket = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -62,7 +62,9 @@ namespace Client_4._1
                 _isConnected = true;
                 AppendStatusMessage("Connected to the server!");
 
+                // Khởi tạo kết nối UDP sau khi kết nối TCP thành công
                 ConnectToUdpServer(serverAddress);
+
                 new Thread(ReceiveMessages).Start();
                 RequestUserList();
             }
@@ -71,24 +73,52 @@ namespace Client_4._1
                 AppendStatusMessage($"Connection error: {ex.Message}");
                 _isConnected = false;
             }
+            catch (Exception ex)
+            {
+                AppendStatusMessage($"Error: {ex.Message}");
+                _isConnected = false;
+            }
         }
 
         private void ConnectToUdpServer(string serverAddress)
         {
             try
             {
-                IPAddress ipAddress = Dns.GetHostEntry(serverAddress).AddressList[0];
-                IPEndPoint udpEndPoint = new IPEndPoint(ipAddress, VideoPort);
+                IPHostEntry hostEntry = Dns.GetHostEntry(serverAddress);
+                IPAddress ipAddress = hostEntry.AddressList[0];
+                IPEndPoint udpEndPoint = new IPEndPoint(ipAddress, 8082); // Cổng UDP server
 
+                // Tạo socket UDP và kết nối
                 _videoSocket = new Socket(ipAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+                _videoSocket.Bind(new IPEndPoint(IPAddress.Any, 0)); // Cho phép OS chọn cổng ngẫu nhiên
                 _videoSocket.Connect(udpEndPoint);
 
-                AppendStatusMessage("Connected to the UDP server on port " + VideoPort);
+                // Lưu cổng nguồn của kết nối UDP
+                _udpSourcePort = ((IPEndPoint)_videoSocket.LocalEndPoint).Port;
+                AppendStatusMessage($"Connected to UDP server on port {_udpSourcePort}");
 
+                // Gửi gói tin đăng ký đến server
+                SendUdpRegisterMessage();
+            }
+            catch (SocketException ex)
+            {
+                AppendStatusMessage($"UDP connection error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                AppendStatusMessage($"Error: {ex.Message}");
+            }
+        }
+
+        private void SendUdpRegisterMessage()
+        {
+            try
+            {
                 string registerMessage = $"REGISTER_UDP:{_userName}<EOF>";
                 byte[] registerBytes = Encoding.UTF8.GetBytes(registerMessage);
-                _videoSocket.Send(registerBytes);
+                _videoSocket.Send(registerBytes); // Gửi thông điệp đăng ký đến server qua UDP
 
+                // Nhận phản hồi từ server sau khi đăng ký thành công
                 byte[] responseBuffer = new byte[1024];
                 int receivedBytes = _videoSocket.Receive(responseBuffer);
                 string responseMessage = Encoding.UTF8.GetString(responseBuffer, 0, receivedBytes);
@@ -96,8 +126,6 @@ namespace Client_4._1
                 if (responseMessage.StartsWith("REGISTER_SUCCESS"))
                 {
                     AppendStatusMessage("UDP registration successful with server.");
-                    SendInitialUdpMessage();
-                    StartUdpListener();
                 }
                 else
                 {
@@ -106,44 +134,14 @@ namespace Client_4._1
             }
             catch (SocketException ex)
             {
-                AppendStatusMessage($"UDP connection error: {ex.Message}");
+                AppendStatusMessage($"Failed to send UDP registration message: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                AppendStatusMessage($"Error: {ex.Message}");
             }
         }
 
-        private void StartUdpListener()
-        {
-            Thread udpListenerThread = new Thread(() =>
-            {
-                UdpClient udpClient = new UdpClient(VideoPort);
-                IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
-
-                while (isUdpListenerRunning)
-                {
-                    try
-                    {
-                        byte[] receivedBytes = udpClient.Receive(ref remoteEndPoint);
-                        string receivedMessage = Encoding.UTF8.GetString(receivedBytes);
-
-                        Console.WriteLine($"Received UDP message: {receivedMessage} from {remoteEndPoint}");
-                        AppendStatusMessage($"Received UDP message from {remoteEndPoint}: {receivedMessage}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("UDP listening error: " + ex.Message);
-                    }
-                }
-            });
-            udpListenerThread.IsBackground = true;
-            udpListenerThread.Start();
-        }
-
-        private void SendInitialUdpMessage()
-        {
-            string message = $"INITIAL_UDP:{_userName}<EOF>";
-            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
-            _videoSocket.Send(messageBytes);
-            AppendStatusMessage("Sent initial UDP message to server.");
-        }
 
         private void ReceiveMessages()
         {
@@ -159,6 +157,30 @@ namespace Client_4._1
                     {
                         UpdateUserList(message.Replace("UserList:", ""));
                     }
+                    else if (message.StartsWith("CALL_ACCEPT:"))
+                    {
+                        string[] parts = message.Split(':');
+                        if (parts.Length >= 2)
+                        {
+                            string callee = parts[1];
+                            AppendStatusMessage($"{callee} đã chấp nhận cuộc gọi video.");
+
+                            Invoke(new Action(() =>
+                            {
+                                VideoForm videoForm = new VideoForm(_clientSocket.RemoteEndPoint.ToString().Split(':')[0], VideoPort);
+                                videoForm.Show();
+                            }));
+                        }
+                    }
+                    else if (message.StartsWith("CALL_REJECT:"))
+                    {
+                        string[] parts = message.Split(':');
+                        if (parts.Length >= 2)
+                        {
+                            string callee = parts[1];
+                            AppendStatusMessage($"{callee} đã từ chối cuộc gọi video.");
+                        }
+                    }
                     else
                     {
                         HandleIncomingMessage(message);
@@ -170,12 +192,81 @@ namespace Client_4._1
                 AppendStatusMessage($"Server disconnected: {ex.Message}");
                 _isConnected = false;
             }
+            catch (Exception ex)
+            {
+                AppendStatusMessage($"Error receiving message: {ex.Message}");
+                _isConnected = false;
+            }
         }
 
         private void HandleIncomingMessage(string message)
         {
-            AppendStatusMessage($"Received message: {message}");
+            if (string.IsNullOrEmpty(message))
+            {
+                AppendStatusMessage("Received an empty message.");
+                return;
+            }
+
+            Console.WriteLine($"[Received Raw Message]: {message}");
+
+            string[] splitMessage = message.Split(new[] { "->", ":" }, StringSplitOptions.None);
+            if (splitMessage.Length == 3)
+            {
+                string fromUser = splitMessage[0].Trim();
+                string toUser = splitMessage[1].Trim();
+                string content = splitMessage[2].Trim();
+
+                if (toUser == _userName || fromUser == _userName)
+                {
+                    if (fromUser != _userName)
+                    {
+                        if (_openChats.ContainsKey(fromUser))
+                        {
+                            _openChats[fromUser].ReceiveMessage($"{fromUser}: {content}");
+                        }
+                        else
+                        {
+                            OpenOrSendToChat(fromUser, content);
+                        }
+
+                        if (!_chatHistories.ContainsKey(fromUser))
+                        {
+                            _chatHistories[fromUser] = new List<string>();
+                        }
+                        _chatHistories[fromUser].Add($"{fromUser}: {content}");
+                    }
+                }
+            }
+            else
+            {
+                string errorMsg = $"Received message in unexpected format: {message}";
+                AppendStatusMessage(errorMsg);
+                MessageBox.Show(errorMsg, "Format Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
+
+        private void OpenOrSendToChat(string user, string messageContent)
+        {
+            if (!_openChats.ContainsKey(user))
+            {
+                Invoke(new Action(() =>
+                {
+                    // Truyền _udpSourcePort khi tạo ChatForm
+                    ChatForm chatForm = new ChatForm(_clientSocket, _userName, user, _videoSocket, _udpSourcePort + 1);
+
+                    _openChats[user] = chatForm;
+
+                    chatForm.FormClosed += (s, e) => _openChats.Remove(user);
+                    chatForm.Show();
+                }));
+            }
+
+            if (_openChats.ContainsKey(user))
+            {
+                _openChats[user].ReceiveMessage($"{user}: {messageContent}");
+            }
+        }
+
 
         private void AppendStatusMessage(string status)
         {
@@ -187,15 +278,24 @@ namespace Client_4._1
 
         private void UpdateUserList(string userList)
         {
-            Invoke(new Action(() =>
+            if (InvokeRequired)
             {
-                lstUsers.Items.Clear();
-                if (!string.IsNullOrEmpty(userList))
-                {
-                    string[] users = userList.Split(',');
-                    lstUsers.Items.AddRange(users);
-                }
-            }));
+                Invoke(new Action(() => UpdateUserList(userList)));
+                return;
+            }
+
+            lstUsers.Items.Clear();
+            if (!string.IsNullOrEmpty(userList))
+            {
+                string[] users = userList.Split(',');
+                lstUsers.Items.AddRange(users);
+            }
+        }
+
+        private void UpdateMessagedUsersList()
+        {
+            lstMessagedUsers.Items.Clear();
+            lstMessagedUsers.Items.AddRange(_messagedUsers.ToArray());
         }
 
         private void RequestUserList()
@@ -204,20 +304,66 @@ namespace Client_4._1
             _clientSocket.Send(requestBytes);
         }
 
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        private void lstUsers_DoubleClick(object sender, EventArgs e)
         {
-            isUdpListenerRunning = false;
-            _videoSocket?.Close();
-            _clientSocket?.Close();
+            string selectedUser = lstUsers.SelectedItem?.ToString();
+
+            if (!string.IsNullOrEmpty(selectedUser))
+            {
+                if (!_messagedUsers.Contains(selectedUser))
+                {
+                    _messagedUsers.Add(selectedUser);
+                    UpdateMessagedUsersList();
+                }
+
+                AppendStatusMessage($"User {selectedUser} added to Messaged Users.");
+            }
         }
 
-        private void lstUsers_DoubleClick(object sender, EventArgs e)
+        private void lstMessagedUsers_DoubleClick(object sender, EventArgs e)
+        {
+            string selectedUser = lstMessagedUsers.SelectedItem?.ToString();
+
+            if (!string.IsNullOrEmpty(selectedUser))
+            {
+                if (!_openChats.ContainsKey(selectedUser))
+                {
+                    OpenOrSendToChat(selectedUser, $"{selectedUser}");
+                }
+            }
+        }
+
+        private void lstUsers_SelectedIndexChanged(object sender, EventArgs e)
         {
             string selectedUser = lstUsers.SelectedItem?.ToString();
             if (!string.IsNullOrEmpty(selectedUser))
             {
-                AppendStatusMessage($"User {selectedUser} selected for chat.");
+                AppendStatusMessage($"Selected user: {selectedUser}");
             }
+        }
+
+        private void lstMessagedUsers_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string selectedUser = lstMessagedUsers.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(selectedUser))
+            {
+                AppendStatusMessage($"Selected user from Messaged Users: {selectedUser}");
+            }
+        }
+
+        private void lstUsers_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+            // Hàm này hiện tại không sử dụng
+        }
+
+        private void RequestChatHistory(string withUser)
+        {
+            string request = $"GetChatHistory:{withUser}<EOF>";
+            _clientSocket.Send(Encoding.UTF8.GetBytes(request));
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
         }
     }
 }
