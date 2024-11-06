@@ -1,5 +1,5 @@
 Giới thiệu: 
-Đây là ứng dụng code nhắn tin sử dụng socket để nhắn tin thông qua một sever trung gian có mã hóa 
+Đây là ứng dụng code nhắn tin sử dụng socket để nhắn tin thông qua một sever trung gian,Sử dụng thư viện để mã hóa Bouncy Castle 
 Điều kiện:
    Chỉ khi Server được bật  thì mới có thể sử dụng và kết nối thành công được 
    Có kết nối mạng, sử dụng dotnet8 
