@@ -1,7 +1,7 @@
 Giới thiệu 
 Đây là ứng dụng code nhắn tin sử dụng socket để nhắn tin thông qua một sever trung gian có mã hóa 
 Điều kiện 
-   Chỉ khi Server được bật ở nhà thì mới có thể sử dụng và kết nối thành công được 
+   Chỉ khi Server được bật  thì mới có thể sử dụng và kết nối thành công được 
    Có kết nối mạng, sử dụng dotnet8 
 Chức năng
    Hiển thị danh sách các người kết nối nhận được từ sever 
