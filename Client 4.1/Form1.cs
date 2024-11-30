@@ -33,6 +33,14 @@ namespace Client_4._1
         private void btnConnect_Click(object sender, EventArgs e)
         {
             _userName = txtUserName.Text.Trim();
+
+            // Kiểm tra nếu tên người dùng bị để trống
+            if (string.IsNullOrEmpty(_userName))
+            {
+                MessageBox.Show("Please enter a username before connecting.", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             string serverAddress = txtServerDNS.Text.Trim();
             int port;
 
@@ -44,6 +52,7 @@ namespace Client_4._1
 
             ConnectToServer(serverAddress, port);
         }
+
 
         private void ConnectToServer(string serverAddress, int port)
         {
